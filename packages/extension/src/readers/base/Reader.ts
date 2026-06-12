@@ -1,4 +1,4 @@
-import { JobForm } from "../../types/forms";
+import { JobForm } from "../../core/types/forms";
 
 export interface Reader {
     readContent(): JobForm;

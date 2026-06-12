@@ -5,13 +5,17 @@ import { LinkedinReader } from "./impl/LinkedinReader";
 export class ReaderFactory {
 
     private static readonly knownReaders: Record<string, Reader> = {
-        linkedin: new LinkedinReader()
+        "linkedin.com": new LinkedinReader(),
     };
 
-    static getReader(site: string): Reader {
+    static getReader(hostname: string): Reader {
+
+        const normalizedHost = hostname
+            .replace(/^www\./, "")
+            .toLowerCase();
 
         return (
-            this.knownReaders[site]
+            this.knownReaders[normalizedHost]
             ?? new GeneralContentReader()
         );
 

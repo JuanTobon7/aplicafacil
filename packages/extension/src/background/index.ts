@@ -1,37 +1,23 @@
 chrome.runtime.onMessage.addListener(
     async (message, sender, sendResponse) => {
 
-        console.log(
-            "[Background]",
-            message
-        );
-
-        if (
-            message.type === "FORM_DETECTED"
-        ) {
-
-            console.log(
-                "Formulario detectado automáticamente",
-                message.form
-            );
-
-            return;
+        console.log("[Background]",message);
+        
+        if (message.type === "FORM_DETECTED") {
+        console.log("Formulario detectado automáticamente");
+        console.log("metadata:", message.form.metadata);
+        console.log("fields count:", message.form.fields.length);
+        return;
         }
 
-        if (
-            message.type !== "READ_ACTIVE_FORM"
-        ) {
-            return;
-        }
+        if (message.type !== "READ_ACTIVE_FORM")return;
 
-        const [tab] =
-            await chrome.tabs.query({
+        const [tab] = await chrome.tabs.query({
                 active: true,
                 currentWindow: true
             });
 
         if (!tab?.id) {
-
             sendResponse({
                 success: false,
                 message: "No active tab."
@@ -42,8 +28,7 @@ chrome.runtime.onMessage.addListener(
 
         try {
 
-            const response =
-                await chrome.tabs.sendMessage(
+            const response = await chrome.tabs.sendMessage(
                     tab.id,
                     {
                         type: "READ_FORM"

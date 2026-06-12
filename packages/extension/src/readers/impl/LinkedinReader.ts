@@ -1,120 +1,99 @@
-import { FieldType, FormField, JobForm } from "../../types/forms";
+import { RadioGroupProcessor } from "../../core/RadioGroupProcessor";
+import { StandardInputProcessor } from "../../core/StandardInputProcessor";
+import { FormField, JobForm } from "../../core/types/forms";
+import { MetadataExtractorFactory } from "../MetadataExtractorFactory";
 import { Reader } from "../base/Reader";
 
+
 export class LinkedinReader implements Reader {
+  private readonly standardProcessor = new StandardInputProcessor();
+  private readonly radioProcessor = new RadioGroupProcessor();
 
-    available(): boolean {
-        return (
-            location.hostname.includes("linkedin.com")
-            &&
-            location.href.includes("/jobs/")
-        );
+  available(): boolean {
+    return (
+      location.hostname.includes("linkedin.com") &&
+      location.href.includes("/jobs/")
+    );
+  }
+
+  readContent(): JobForm {
+    console.log("[LinkedinReader] readContent START");
+    let metadata: Record<string, any> = {};
+    try {
+      const extractor = MetadataExtractorFactory.getExtractor("linkedin");
+      console.log("[LinkedinReader] Extractor class:", extractor.constructor.name);
+      metadata = extractor.extract();
+      console.log("[LinkedinReader] Extracted metadata:", metadata);
+    } catch (err) {
+      console.error("[LinkedinReader] Error extracting metadata:", err);
     }
 
-    readContent(): JobForm {
-        const fields: FormField[] = [];
+    const form = this.findEasyApplyForm();
+    console.log("[LinkedinReader] EasyApply form found?", !!form);
 
-        const form = document.querySelector<HTMLFormElement>('form');
-        if (!form) {
-            return { url: location.href, title: document.title, fields: [] };
-        }
-
-        const elements = form.querySelectorAll(
-            'input:not([type="hidden"]), textarea, select'
-        );
-
-        elements.forEach(el => {
-            const element = el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-
-            if (element.offsetParent === null) return;
-
-            const label = this.findLabel(element);
-
-            fields.push({
-                label,
-                name: element.name || element.id,
-                type: element.tagName === 'SELECT' ? 'select' : (element as HTMLInputElement).type,
-                required: element.required,
-                placeholder:
-                    element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
-                        ? element.placeholder
-                        : undefined,
-                fieldType: this.normalizeField(label, element.name || element.id),
-            });
-        });
-
-        return {
-            url: location.href,
-            title: document.title,
-            fields,
-        };
+    if (!form) {
+      const result = {
+        url: location.href,
+        title: metadata?.title ?? "",
+        fields: [],
+        metadata,
+      };
+      console.log("[LinkedinReader] Returning without form:", result);
+      return result;
     }
 
-    private findLabel(
-        element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    ): string {
+    const fields = this.extractFormFields(form);
+    const result = {
+      url: location.href,
+      title: metadata?.title ?? "",
+      fields,
+      metadata,
+    };
+    console.log("[LinkedinReader] Returning with form and fields:", result);
+    return result;
+}
 
-        const id = element.id;
-
-        if (id) {
-            const label = document.querySelector(`label[for="${id}"]`);
-            if (label?.textContent?.trim()) {
-                return label.textContent.trim();
-            }
-        }
-
-        const parentLabel = element.closest("label");
-        if (parentLabel?.textContent?.trim()) {
-            return parentLabel.textContent.trim();
-        }
-
-        const siblingLabel = element.parentElement?.querySelector("label");
-        if (siblingLabel?.textContent?.trim()) {
-            return siblingLabel.textContent.trim();
-        }
-
-        return "";
+  private findEasyApplyForm(): HTMLFormElement | null {
+    const modalSelectors = [
+      '.jobs-easy-apply-modal',
+      '.artdeco-modal',
+      '[data-test-modal]',
+      '.jobs-s-apply',
+    ];
+    for (const selector of modalSelectors) {
+      const modal = document.querySelector(selector);
+      if (modal) {
+        const form = modal.querySelector('form');
+        if (form) return form;
+      }
     }
+    const forms = Array.from(document.querySelectorAll('form'));
+    return forms.find(f => f.offsetParent !== null && !f.closest('.jobs-search-box')) || null;
+  }
 
-    private normalizeField(label: string, name: string): FieldType {
+  private extractFormFields(form: HTMLFormElement): FormField[] {
+    const fields: FormField[] = [];
 
-        const text = `${label} ${name}`.toLowerCase();
+    const standardElements = form.querySelectorAll(
+      'input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]), textarea, select'
+    );
+    standardElements.forEach(el => {
+      if (this.standardProcessor.canProcess(el)) {
+        const field = this.standardProcessor.process(el);
+        if (field) fields.push(field);
+      }
+    });
 
-        if (text.includes("email")) {
-            return FieldType.EMAIL;
+    const fieldsets = form.querySelectorAll('fieldset');
+    fieldsets.forEach(fieldset => {
+      if (this.radioProcessor.canProcess(fieldset)) {
+        const field = this.radioProcessor.process(fieldset);
+        if (field && !fields.some(f => f.name === field.name)) {
+          fields.push(field);
         }
+      }
+    });
 
-        if (
-            text.includes("phone") ||
-            text.includes("telefono") ||
-            text.includes("teléfono") ||
-            text.includes("móvil") ||
-            text.includes("movil")
-        ) {
-            return FieldType.PHONE;
-        }
-
-        if (text.includes("linkedin")) {
-            return FieldType.LINKEDIN;
-        }
-
-        if (
-            text.includes("resume") ||
-            text.includes("curriculum") ||
-            text.includes("cv")
-        ) {
-            return FieldType.CV;
-        }
-
-        if (
-            text.includes("country") ||
-            text.includes("país") ||
-            text.includes("pais") ||
-            text.includes("código del país")
-        ) {
-            return FieldType.COUNTRY;
-        }
-
-        return FieldType.UNKNOWN;
-    }
+    return fields;
+  }
 }
