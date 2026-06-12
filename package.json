@@ -1,0 +1,20 @@
+{
+  "name": "aplicafacil",
+  "version": "1.0.0",
+  "description": "AI-powered Chrome extension that autofills job application forms and tracks your application status via Gmail",
+  "private": true,
+  "author": "Juan Tobon",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JuanTobon7/aplicafacil.git"
+  },
+  "workspaces": [
+  "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm --filter server start:dev",
+    "build:server": "npm --filter server build",
+    "dev:extension": "npm --filter extension dev"
+  }
+}
