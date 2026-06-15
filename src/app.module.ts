@@ -1,13 +1,17 @@
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JobRecommendationModule } from "./jobs/module/JobRecommendation.module";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { PeopleModule } from "./people/module/people.module";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { databaseConfig } from "./config/db.config";
 
 @Module({
   imports: [
     JobRecommendationModule,
+    PeopleModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -17,6 +21,10 @@ import { ThrottlerModule } from "@nestjs/throttler";
         limit: 30,   // 30 peticiones por IP
       },
     ]),
+    TypeOrmModule.forRootAsync({
+        inject: [ConfigService],
+        useFactory: databaseConfig,
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
