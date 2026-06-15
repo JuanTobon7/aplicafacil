@@ -16,7 +16,6 @@ export class FormScanner {
   private constructor() {
     this.detectors.push(new UrlChangeDetector());
     this.detectors.push(new DomChangeDetector());
-    this.detectors.push(new ModalOpenDetector());
   }
 
   static getInstance(): FormScanner {

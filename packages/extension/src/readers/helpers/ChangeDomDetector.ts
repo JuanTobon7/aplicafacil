@@ -2,19 +2,31 @@ import { IChangeDetector } from "./IchangeDetector";
 
 export class DomChangeDetector implements IChangeDetector {
   private observer?: MutationObserver;
-  private callback?: () => void;
+  private timer?: number;
 
   start(callback: () => void): void {
-    this.callback = callback;
     this.observer = new MutationObserver(() => {
-      // Comprobamos si hay algún formulario, campo o modal en el DOM actual
-      const hasFormElements = document.querySelector('form, input, textarea, select, [role="dialog"], .modal, .dialog');
-      if (hasFormElements) {
-        console.log("[AutoApply] DOM change detected: form elements or modal found");
-        callback();
-      }
+
+      clearTimeout(this.timer);
+
+      this.timer = window.setTimeout(() => {
+
+        const hasFormElements = document.querySelector(
+          'form, input, textarea, select, [role="dialog"]'
+        );
+
+        if (hasFormElements) {
+          callback();
+        }
+
+      }, 500);
+
     });
-    this.observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   stop(): void {
