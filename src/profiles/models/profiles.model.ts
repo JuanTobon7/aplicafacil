@@ -6,6 +6,7 @@ import {
 import { SkillsModel } from './skills.model';
 import { ExperiencesModel } from './experiences.model';
 import { EducationModel } from './education.model';
+import { ProjectModel } from './projects.model';
 
 @Entity('people')
 export class ProfileModel {
@@ -34,11 +35,21 @@ export class ProfileModel {
 
     @OneToMany(
         () => EducationModel,
-        (education) => education.profile,
+        (educations) => educations.profile,
         {
         cascade: true,
         eager: true,
         },
     )
-    education!: EducationModel[];
+    educations!: EducationModel[];
+
+    @OneToMany(
+        () => ProjectModel,
+        (project) => project.profile,
+        {
+        cascade: true,
+        eager: true,
+        },
+    )
+    projects!: ProjectModel[];
 }

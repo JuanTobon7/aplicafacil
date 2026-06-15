@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { ProfileModel } from "./profiles.model";
 
 @Entity('experiences')
@@ -21,9 +21,13 @@ export class ExperiencesModel {
     @Column({ type: 'date', nullable: true })
     endDate?: Date;
 
-    @OneToMany(
-            () => ProfileModel,
-            (profile) => profile.experiences,
-        )
-        profile!: ProfileModel;
+    @ManyToOne(
+        () => ProfileModel,
+        (profile) => profile.experiences,
+        {
+            onDelete: 'CASCADE',
+        },
+    )
+    @JoinColumn({ name: 'profile_id' })
+    profile!: ProfileModel;
 }

@@ -14,7 +14,7 @@ export class PeopleServiceImpl extends PeopleService {
         private readonly peopleRepository: Repository<PeopleModel>,
     ) {
         super();
-}
+    }
 
     async create(dto: CreatePeopleDto): Promise<PeopleDto> {
         const newPerson: PeopleDto = PeopleCreateMapper.toDto(this.peopleRepository.create(dto));

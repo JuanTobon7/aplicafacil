@@ -1,23 +1,24 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { ProfileModel } from "./profiles.model";
 
-@Entity('skills')
-export class SkillsModel {
+@Entity('projects')
+export class ProjectModel {
+
     @PrimaryGeneratedColumn('uuid')
     id!: string;
 
-    @Column({ length: 100 })
+    @Column()
     name!: string;
 
-    @Column({ length: 255, nullable: true })
-    description?: string;
+    @Column('text')
+    description!: string;
+
+    @Column({ nullable: true })
+    technologies?: string;
 
     @ManyToOne(
         () => ProfileModel,
-        (profile) => profile.skills,
+        profile => profile.projects,
     )
     profile!: ProfileModel;
-
-    @Column({ nullable: true })
-    yearsOfExperience?: number;
 }

@@ -10,15 +10,17 @@ export class EducationModel {
     institutionName!: string;
 
     @Column({ length: 250, nullable: true })
-    description!: string;
+    description?: string;
 
+    @Column({ type: 'date' })
     startDate!: Date;
 
+    @Column({ type: 'date', nullable: true })
     endDate?: Date;
 
     @ManyToOne(
         () => ProfileModel,
-        (profile) => profile.education,
+        (profile) => profile.educations,
     )
     profile!: ProfileModel;
 }
