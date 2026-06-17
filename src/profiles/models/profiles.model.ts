@@ -3,10 +3,10 @@ import {
   PrimaryGeneratedColumn,
   OneToMany
 } from 'typeorm';
-import { SkillsModel } from './skills.model';
 import { ExperiencesModel } from './experiences.model';
 import { EducationModel } from './education.model';
 import { ProjectModel } from './projects.model';
+import { SkillsModel } from './skills.model';
 
 @Entity('people')
 export class ProfileModel {

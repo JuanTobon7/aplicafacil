@@ -7,11 +7,13 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { PeopleModule } from "./people/module/people.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { databaseConfig } from "./config/db.config";
+import { ProfileModule } from "./profiles/module/profile.module";
 
 @Module({
   imports: [
     JobRecommendationModule,
     PeopleModule,
+    ProfileModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
