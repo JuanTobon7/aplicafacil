@@ -10,6 +10,8 @@ export class ProfileMapper {
     static toEntity(dto: CreateProfileDto): ProfileModel {
 
         const entity = new ProfileModel();
+        entity.title = dto.title;
+        entity.summary = dto.summary;
         entity.skills = SkillMapper.toEntities(dto.skills ?? []);
         entity.experiences = ExperienceMapper.toEntities(dto.experiences ?? []);
         entity.educations = EducationMapper.toEntities(dto.education ?? []);
@@ -35,6 +37,8 @@ export class ProfileMapper {
 
         return {
             id: entity.id,
+            title: entity.title,
+            summary: entity.summary,
             skills: entity.skills?.map(
                     skill => SkillMapper.toDto(skill)
                 ) ?? [],

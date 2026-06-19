@@ -7,14 +7,15 @@ import { LoginDto } from "src/auth/dto/login.user.dto";
 import { CreateUserDto } from "src/auth/dto/create.user.dto";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from 'bcrypt';
+import { PeopleService } from "src/people/service/contract/people.service";
 
 @Injectable()
 export class AuthServiceImpl implements AuthService {
   constructor(
     @InjectRepository(UserModel)
     private readonly userRepository: Repository<UserModel>,
-
     private readonly jwtService: JwtService,
+    private readonly peopleService: PeopleService,
   ) {}
 
   async sendToken(
@@ -76,9 +77,14 @@ export class AuthServiceImpl implements AuthService {
       10,
     );
 
+    const person = await this.peopleService.findOne(createUserDto.personId);
+
+    if(!person) throw new NotFoundException('Persona no encontrada');
+    
     const user = this.userRepository.create({
       username: createUserDto.username,
       password: hash,
+      person: person
     });
 
     await this.userRepository.save(user);

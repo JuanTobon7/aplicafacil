@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 
@@ -9,6 +10,12 @@ import { CreateExperienceDto } from './create.experience.dto';
 import { CreateEducationDto } from './create.education.dto';
 
 export class CreateProfileDto {
+
+  @IsString()
+  title!: string;
+  
+  @IsString()
+  summary!: string;
 
   @IsArray()
   @ValidateNested({ each: true })

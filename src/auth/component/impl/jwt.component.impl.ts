@@ -6,7 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from 'src/auth/types/jwt.payload';
 
 @Injectable()
-export class JwtServiceImpl extends JwtComponent {
+export class JwtComponentImpl extends JwtComponent {
   constructor(
     private readonly jwtService: JwtService,
   ) {

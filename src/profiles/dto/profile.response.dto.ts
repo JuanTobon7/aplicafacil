@@ -5,6 +5,8 @@ import { SkillsResponseDto } from "./skill.response.dto";
 export class ProfileResponseDto {
 
   id!: string;
+  title!: string;
+  summary!: string;
   skills!: SkillsResponseDto[];
   experiences!: ExperienceResponseDto[];
   education!: EducationResponseDto[];

@@ -21,5 +21,9 @@ import { PeopleModel } from "../models/people.model";
       useClass: PeopleServiceImpl,
     },
   ],
+
+  exports: [
+    PeopleService,
+  ],
 })
 export class PeopleModule {}

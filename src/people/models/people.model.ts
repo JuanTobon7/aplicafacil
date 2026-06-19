@@ -1,4 +1,5 @@
 import { UserModel } from 'src/auth/models/user.model';
+import { ProfileModel } from 'src/profiles/models/profiles.model';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,6 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('people')
@@ -49,4 +51,10 @@ export class PeopleModel {
     (user) => user.person,
   )
   user?: UserModel;
+
+  @OneToMany(
+    () => ProfileModel,
+    (profile) => profile.people,
+  )
+  profiles!: ProfileModel[];
 }

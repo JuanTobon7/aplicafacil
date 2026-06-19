@@ -8,12 +8,14 @@ import { PeopleModule } from "./people/module/people.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { databaseConfig } from "./config/db.config";
 import { ProfileModule } from "./profiles/module/profile.module";
+import { AuthModule } from "./auth/module/user.module";
 
 @Module({
   imports: [
     JobRecommendationModule,
     PeopleModule,
     ProfileModule,
+    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

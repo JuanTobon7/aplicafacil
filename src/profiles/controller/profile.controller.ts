@@ -1,22 +1,29 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { ProfileService } from "../service/contract/profile.service";
 import { ProfileResponseDto } from "../dto/profile.response.dto";
 import { CreateProfileDto } from "../dto/create.profile.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { JwtPayload } from "src/auth/types/jwt.payload";
 
 @Controller("profiles")
 export class ProfileController {
     constructor(private readonly profileService: ProfileService) {}
 
     @Post()
-    async createProfile(@Body() profileData: CreateProfileDto): Promise<ProfileResponseDto> {
+    async createProfile(
+        @Req() req: any,
+        @Body() profileData: CreateProfileDto): Promise<ProfileResponseDto> {
         // Implement logic to create a profile
-        return await this.profileService.createProfile(profileData);
+        const reqUser = req.user;
+        console.debug("Creating profile for user:", reqUser);  
+        return await this.profileService.createProfile(profileData, reqUser.personId);
     }
 
-    @Get(":id")
-    async getAllProfileById(@Param("id") id: string):Promise<ProfileResponseDto> {
-        return await this.profileService.getProfileById(id);
+    @Get()
+    async getProfileByUserId(@Req() req: any):Promise<ProfileResponseDto[]> {
+        const reqUser :JwtPayload = req.user;
+        console.debug("Fetching profiles for user:", reqUser);
+        return await this.profileService.getProfilesByPeopleId(reqUser.personId);
     }
 
     @Put(":id")
