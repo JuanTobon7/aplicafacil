@@ -28,8 +28,8 @@ export const databaseConfig = (
     database: configService.get<string>("DB_NAME"),
 
     autoLoadEntities: true,
+    logging: true,
 
-    synchronize:
-      configService.get<string>("NODE_ENV") !== "production",
+    synchronize: false
   };
 };

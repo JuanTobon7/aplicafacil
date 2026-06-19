@@ -1,9 +1,11 @@
+import { UserModel } from 'src/auth/models/user.model';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
 } from 'typeorm';
 
 @Entity('people')
@@ -12,13 +14,13 @@ export class PeopleModel {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ length: 100 })
+  @Column({ length: 100, nullable: false })
   firstName!: string;
 
-  @Column({ length: 100 })
+  @Column({ length: 100, nullable: false })
   lastName!: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: false })
   email!: string;
 
   @Column({ nullable: true })
@@ -41,4 +43,10 @@ export class PeopleModel {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @OneToOne(
+    () => UserModel,
+    (user) => user.person,
+  )
+  user?: UserModel;
 }

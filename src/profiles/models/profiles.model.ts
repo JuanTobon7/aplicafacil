@@ -8,7 +8,7 @@ import { EducationModel } from './education.model';
 import { ProjectModel } from './projects.model';
 import { SkillsModel } from './skills.model';
 
-@Entity('people')
+@Entity('profiles')
 export class ProfileModel {
     @PrimaryGeneratedColumn('uuid')
     id!: string;

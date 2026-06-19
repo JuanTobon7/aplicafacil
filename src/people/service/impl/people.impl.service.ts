@@ -19,8 +19,8 @@ export class PeopleServiceImpl extends PeopleService {
     async create(dto: CreatePeopleDto): Promise<PeopleDto> {
         const newPerson: PeopleDto = PeopleCreateMapper.toDto(this.peopleRepository.create(dto));
         const personEntity: PeopleModel = PeopleMapper.fromDto(newPerson);
-        await this.peopleRepository.save(personEntity);
-        return newPerson;
+        const savedPerson: PeopleModel = await this.peopleRepository.save(personEntity);
+        return PeopleMapper.toDto(savedPerson);
     }
 
     async findAll(): Promise<PeopleDto[]> {
