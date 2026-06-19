@@ -16,10 +16,22 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"skills\": [\n    {\n      \"name\": \"JavaScript\",\n      \"description\": \"ES6+ y frameworks\",\n      \"yearsOfExperience\": 4\n    },\n    {\n      \"name\": \"Python\",\n      \"description\": \"Análisis de datos\",\n      \"yearsOfExperience\": 2\n    }\n  ],\n  \"experiences\": [\n    {\n      \"companyName\": \"Global Solutions\",\n      \"position\": \"Software Engineer\",\n      \"description\": \"Desarrollo de APIs\",\n      \"startDate\": \"2021-03-01\",\n      \"endDate\": \"2023-08-31\"\n    }\n  ],\n  \"education\": [\n    {\n      \"institutionName\": \"Universidad Complutense\",\n      \"description\": \"Grado en Ingeniería Informática\",\n      \"startDate\": \"2017-09-15\",\n      \"endDate\": \"2021-06-30\"\n    }\n  ]\n}"
+          "raw": "{\n  \"title\": \"Ingeniero de Software\",\n  \"summary\": \"Profesional con experiencia en desarrollo de aplicaciones web y móviles.\",\n  \"skills\": [\n    {\n      \"name\": \"JavaScript\",\n      \"description\": \"ES6+ y frameworks\",\n      \"yearsOfExperience\": 4\n    },\n    {\n      \"name\": \"Python\",\n      \"description\": \"Análisis de datos\",\n      \"yearsOfExperience\": 2\n    }\n  ],\n  \"experiences\": [\n    {\n      \"companyName\": \"Global Solutions\",\n      \"position\": \"Software Engineer\",\n      \"description\": \"Desarrollo de APIs\",\n      \"startDate\": \"2021-03-01\",\n      \"endDate\": \"2023-08-31\"\n    }\n  ],\n  \"education\": [\n    {\n      \"institutionName\": \"Universidad Complutense\",\n      \"description\": \"Grado en Ingeniería Informática\",\n      \"startDate\": \"2017-09-15\",\n      \"endDate\": \"2021-06-30\"\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/profiles",
+          "host": ["{{baseUrl}}"],
+          "path": ["profiles"]
+        }
+      }
+    },
+    {
+      "name": "Read Profiles by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/profiles/",
           "host": ["{{baseUrl}}"],
           "path": ["profiles"]
         }
