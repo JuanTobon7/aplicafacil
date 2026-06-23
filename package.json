@@ -10,7 +10,7 @@
     "url": "git+https://github.com/JuanTobon7/aplicafacil.git"
   },
   "workspaces": [
-  "packages/*"
+    "packages/*"
   ],
   "scripts": {
     "dev:server": "npm --filter server start:dev",

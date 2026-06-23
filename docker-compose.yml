@@ -6,7 +6,7 @@ services:
       - path: ./packages/aplicafacil-server/.env
         required: true
 
-    image: postgres:${POSTGRES_VERSION}
+    image: ${POSTGRES_IMAGE}
 
     container_name: ${POSTGRES_CONTAINER_NAME}
 
