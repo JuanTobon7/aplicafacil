@@ -1,32 +1,26 @@
-import { ProfileRepository } from "../../repository/profile/contract/profile.repository.js";
 import { AiProfileTool } from "../contract/ai.search.profile.js";
+import { ProfileVectorDto } from "../dto/dto.vector.profile.js";
 
 export class AiSearchProfileToolImpl implements AiProfileTool {
-    constructor(
-        private readonly profileRepository: ProfileRepository
-    ) {}
 
-    async getProfileById(id: string): Promise<string> {
-        const profile = await this.profileRepository.getById(id);
+    async getProfileById(id: string): Promise<ProfileVectorDto> {
 
         if (!profile) {
-            return "Profile not found";
+            throw new Error("Profile not found");
         }
 
         return JSON.stringify(profile, null, 2);
     }
 
-    async getProfilesByUserId(userId: string): Promise<string[]> {
-        const profiles = await this.profileRepository.getByUserId(userId);
+    async getProfilesByUserId(userId: string): Promise<ProfileVectorDto[]> {
 
         return profiles.map(profile => JSON.stringify(profile));
     }
 
     async getRecommendationFormByProfileId(profileId: string): Promise<string> {
-        const profile = await this.profileRepository.getById(profileId);
 
         if (!profile) {
-            return "Profile not found";
+            throw new Error("Profile not found");
         }
 
         return `

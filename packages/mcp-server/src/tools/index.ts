@@ -1,4 +1,3 @@
-import { PostgresProfileRepositoryImpl } from "../repository/profile/impl/profile.repository.pg.js";
 import { AiSearchProfileToolImpl } from "./impl/ai.search.profile.impl.js";
 
 export class ToolsBank {
