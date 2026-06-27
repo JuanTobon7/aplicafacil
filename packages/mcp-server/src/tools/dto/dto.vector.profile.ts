@@ -1,6 +1,6 @@
-import { EducationVectorDto } from "./dto.vector.education";
-import { ExperiencesVectorDto } from "./dto.vector.experiences";
-import { SkillsVectorDto } from "./dto.vector.skills";
+import { EducationVectorDto } from "./dto.vector.education.js";
+import { ExperiencesVectorDto } from "./dto.vector.experiences.js";
+import { SkillsVectorDto } from "./dto.vector.skills.js";
 
 export class ProfileVectorDto {
     id!: string;

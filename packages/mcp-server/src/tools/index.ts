@@ -1,3 +1,7 @@
+import { Axios } from "axios";
+import { ClientBackend } from "../client/client.backend.js";
+import { ClientPeople } from "../client/client.people.js";
+import { ClientProfile } from "../client/client.profile.js";
 import { AiSearchProfileToolImpl } from "./impl/ai.search.profile.impl.js";
 
 export class ToolsBank {
@@ -22,11 +26,42 @@ export class ToolsBank {
     }
 }
 
-export const toolsBank = new ToolsBank();
+
+
+const toolsBank = new ToolsBank();
+
+const clientBackend = new ClientBackend(
+    process.env.BACKEND_URL ?? "http://localhost:3000",
+    new Axios({
+        baseURL: process.env.BACKEND_URL ?? "http://localhost:3000",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        timeout: 5000,
+    })
+);
+const clientProfile = new ClientProfile(clientBackend);
+const clientPeople = new ClientPeople(clientBackend);
+
+const AiProfileTool = new AiSearchProfileToolImpl(
+    clientProfile,
+    clientPeople
+);
 
 toolsBank.register(
-    "aiProfileTool",
-    new AiSearchProfileToolImpl(
-        new PostgresProfileRepositoryImpl()
-    )
+    "search job profile embedding by id",
+    AiProfileTool.getProfileById.bind(AiProfileTool),
 );
+
+toolsBank.register(
+    "search job profiles by user id",
+    AiProfileTool.getProfilesByUserId.bind(AiProfileTool),
+);
+
+toolsBank.register(
+    "get recommendation form by profile id",
+    AiProfileTool.getRecommendationForm.bind(AiProfileTool),
+);
+
+export {toolsBank};
+
