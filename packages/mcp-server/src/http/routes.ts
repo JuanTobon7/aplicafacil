@@ -10,7 +10,7 @@ import { AiProfileTool } from '../tools/contract/ai.search.profile.js';
  */
 export async function fillFormRoute(req: Request, res: Response) {
   const requestId = `${Date.now()}-${Math.random()}`;
-  logger.info(`[${requestId}] 📝 /tools/fill-form request started`, {
+  logger.debug(`[${requestId}] 📝 /tools/fill-form request started`, {
     bodySize: JSON.stringify(req.body).length,
   });
 

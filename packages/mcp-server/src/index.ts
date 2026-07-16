@@ -2,6 +2,7 @@ import { initializeMcpServer } from './mcp/mcp.server.js';
 import { createExpressApp } from './server/app.js';
 import { logger } from './logger/logger.js';
 
+import 'dotenv/config';
 /**
  * Main entry point for the MCP Server
  */
