@@ -47,7 +47,6 @@ export class McpClientService {
       this.logger.debug(
         `Calling MCP server at ${this.mcpServerUrl}/tools/fill-form`,
       );
-      console.debug('Request payload:', request);
       const response = await firstValueFrom(
         this.httpService.post<FillFormResponse>(
           `${this.mcpServerUrl}/tools/fill-form`,

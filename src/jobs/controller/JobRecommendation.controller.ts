@@ -21,7 +21,15 @@ export class JobRecommendationController {
                 message: 'Recomendaciones generadas exitosamente',
                 recommendations: r.fields
             });
-        }).catch(e => console.error(e));
+        }).catch(
+            e => {
+                console.error(e);
+                res.status(500).json({
+                    message: 'Error al generar recomendaciones',
+                    error: e.message
+                });
+            }
+        );
         
     }
 }
