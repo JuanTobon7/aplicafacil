@@ -53,6 +53,7 @@ export class AuthModule implements NestModule {
         { path: 'auth/register', method: RequestMethod.POST },  
         { path: 'people', method: RequestMethod.POST },
         { path: 'people', method: RequestMethod.GET },
+        { path: 'recommendations', method: RequestMethod.POST }
 
       )
       .forRoutes('*');

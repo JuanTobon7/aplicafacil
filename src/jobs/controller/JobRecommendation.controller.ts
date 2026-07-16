@@ -17,23 +17,11 @@ export class JobRecommendationController {
         response.then(r => { 
             console.log("Body", body)
             console.log("Response LLM:", r)
+            res.status(200).json({
+                message: 'Recomendaciones generadas exitosamente',
+                recommendations: r.fields
+            });
         }).catch(e => console.error(e));
-        res.status(200).json({
-            message: 'Recomendaciones generadas exitosamente',
-            recommendations: [
-                {
-                    id: 1,
-                    title: 'Software Engineer',
-                    company: 'Tech Corp',
-                    location: 'San Francisco, CA'
-                },
-                {
-                    id: 2,
-                    title: 'Product Manager',
-                    company: 'Innovate Inc',
-                    location: 'New York, NY'
-                }
-            ]
-        });
+        
     }
 }
