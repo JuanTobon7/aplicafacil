@@ -1,0 +1,110 @@
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { createProfile } from '../api/profileApi';
+import type { Notice } from '../types/notice';
+import type { EducationForm, ExperienceForm, ProfileForm, SkillForm } from '../types/profile';
+import { createProfileState, emptyEducation, emptyExperience, emptySkill } from '../utils/profileDefaults';
+import { toCreateProfilePayload } from '../utils/profilePayload';
+
+type ProfileCollection = 'skills' | 'experiences' | 'education';
+
+type UseProfileFormOptions = {
+  setNotice: (notice: Notice | null) => void;
+};
+
+export function useProfileForm({ setNotice }: UseProfileFormOptions) {
+  const [profile, setProfile] = useState<ProfileForm>(createProfileState);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [savedProfileId, setSavedProfileId] = useState<string | null>(null);
+
+  const profileReady = useMemo(
+    () => Boolean(profile.title.trim() && profile.summary.trim()),
+    [profile.summary, profile.title],
+  );
+
+  const updateBasics = (field: 'title' | 'summary', value: string) => {
+    setProfile((current) => ({ ...current, [field]: value }));
+  };
+
+  const addSkill = () => {
+    setProfile((current) => ({ ...current, skills: [...current.skills, emptySkill()] }));
+  };
+
+  const addExperience = () => {
+    setProfile((current) => ({ ...current, experiences: [...current.experiences, emptyExperience()] }));
+  };
+
+  const addEducation = () => {
+    setProfile((current) => ({ ...current, education: [...current.education, emptyEducation()] }));
+  };
+
+  const updateSkill = (index: number, key: keyof SkillForm, value: string) => {
+    setProfile((current) => ({
+      ...current,
+      skills: current.skills.map((skill, skillIndex) => (skillIndex === index ? { ...skill, [key]: value } : skill)),
+    }));
+  };
+
+  const updateExperience = (index: number, key: keyof ExperienceForm, value: string) => {
+    setProfile((current) => ({
+      ...current,
+      experiences: current.experiences.map((experience, experienceIndex) =>
+        experienceIndex === index ? { ...experience, [key]: value } : experience,
+      ),
+    }));
+  };
+
+  const updateEducation = (index: number, key: keyof EducationForm, value: string) => {
+    setProfile((current) => ({
+      ...current,
+      education: current.education.map((education, educationIndex) =>
+        educationIndex === index ? { ...education, [key]: value } : education,
+      ),
+    }));
+  };
+
+  const removeEntry = (index: number, collection: ProfileCollection) => {
+    setProfile((current) => ({
+      ...current,
+      [collection]: current[collection].filter((_, entryIndex) => entryIndex !== index),
+    }));
+  };
+
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setNotice(null);
+    setIsSavingProfile(true);
+
+    try {
+      const created = await createProfile(toCreateProfilePayload(profile));
+      setSavedProfileId(created.id);
+      setNotice({
+        tone: 'success',
+        message: 'Profile guardado. Ya puedes subir tu CV para analisis con AI.',
+      });
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'No fue posible guardar el profile.',
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  return {
+    addEducation,
+    addExperience,
+    addSkill,
+    isSavingProfile,
+    profile,
+    profileReady,
+    removeEntry,
+    saveProfile,
+    savedProfileId,
+    updateBasics,
+    updateEducation,
+    updateExperience,
+    updateSkill,
+  };
+}
