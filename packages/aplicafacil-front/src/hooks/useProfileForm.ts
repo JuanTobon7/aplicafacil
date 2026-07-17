@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState,useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { createProfile } from '../api/profileApi';
+import { createProfile, getProfileById, getProfiles } from '../api/profileApi';
 import type { Notice } from '../types/notice';
-import type { EducationForm, ExperienceForm, ProfileForm, SkillForm } from '../types/profile';
+import type { EducationForm, ExperienceForm, ProfileForm, ProfileResponse, SkillForm } from '../types/profile';
 import { createProfileState, emptyEducation, emptyExperience, emptySkill } from '../utils/profileDefaults';
 import { toCreateProfilePayload } from '../utils/profilePayload';
 
@@ -16,6 +16,11 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
   const [profile, setProfile] = useState<ProfileForm>(createProfileState);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [savedProfileId, setSavedProfileId] = useState<string | null>(null);
+  const [profileBank, setProfileBank] = useState<ProfileResponse[]>([]);
+
+  useEffect(() => {
+    getProfilesBank();
+  }, []);
 
   const profileReady = useMemo(
     () => Boolean(profile.title.trim() && profile.summary.trim()),
@@ -78,6 +83,7 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
     try {
       const created = await createProfile(toCreateProfilePayload(profile));
       setSavedProfileId(created.id);
+      await getProfilesBank();
       setNotice({
         tone: 'success',
         message: 'Profile guardado. Ya puedes subir tu CV para analisis con AI.',
@@ -92,12 +98,38 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
     }
   };
 
+  const getProfile = async (id: string) => {
+    try {
+      const response = await getProfileById(id);
+      setProfile(response);
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'No fue posible cargar los profiles guardados.',
+      });
+    }
+  }
+
+  const getProfilesBank = async () => {
+    try {
+      const response = await getProfiles();
+      setProfileBank(response);
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'No fue posible cargar los profiles guardados.',
+      });
+    }
+  }
+
   return {
+    getProfile,
     addEducation,
     addExperience,
     addSkill,
     isSavingProfile,
     profile,
+    profileBank,
     profileReady,
     removeEntry,
     saveProfile,

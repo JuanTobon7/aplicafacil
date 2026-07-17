@@ -1,10 +1,12 @@
 export type SkillForm = {
+  id?: string;
   name: string;
   description: string;
   yearsOfExperience: string;
 };
 
 export type ExperienceForm = {
+  id?: string;
   companyName: string;
   position: string;
   description: string;
@@ -13,6 +15,7 @@ export type ExperienceForm = {
 };
 
 export type EducationForm = {
+  id?: string;
   institutionName: string;
   description: string;
   startDate: string;
@@ -20,6 +23,7 @@ export type EducationForm = {
 };
 
 export type ProfileForm = {
+  id?: string;
   title: string;
   summary: string;
   skills: SkillForm[];

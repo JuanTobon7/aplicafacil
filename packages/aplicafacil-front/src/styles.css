@@ -1,396 +1,303 @@
-:root {
-  color: #182026;
-  background: #eef3f1;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+/* ============================================
+   Archivo: styles.css (corregido)
+   Usa Tailwind CSS 4 (con @apply)
+   ============================================ */
+
+/* 1. Importar Tailwind */
+@import "tailwindcss";
+
+/* 2. Definir colores y valores personalizados (opcional) */
+@theme {
+  --color-brand-dark: #182026;
+  --color-brand-bg: #eef3f1;
+  --color-teal-600: #25636b;
+  --color-teal-700: #1e4f56;
+  --color-gray-soft: #d9e2df;
+  --color-gray-border: #cfdad7;
+  --color-gray-light: #edf3f1;
+  --color-text-primary: #14252b;
+  --color-text-secondary: #405056;
+  --color-text-muted: #617074;
+  --color-success-bg: #e1f4ea;
+  --color-success-text: #17523e;
+  --color-error-bg: #fae2e4;
+  --color-error-text: #7d1f28;
+  --color-info-bg: #e4edf8;
+  --color-info-text: #24466a;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-button,
-input,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.58;
-}
-
-.app-shell {
-  min-height: 100vh;
-  padding: 28px;
-  background:
-    linear-gradient(135deg, rgba(238, 243, 241, 0.86), rgba(230, 237, 242, 0.92)),
-    #eef3f1;
-}
-
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  gap: 24px;
-  max-width: 1380px;
-  margin: 0 auto;
-  align-items: start;
-}
-
-.account-panel,
-.profile-panel {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid #d9e2df;
-  border-radius: 8px;
-  box-shadow: 0 24px 60px rgba(33, 45, 52, 0.08);
-}
-
-.account-panel {
-  position: sticky;
-  top: 28px;
-  padding: 22px;
-}
-
-.profile-panel {
-  padding: 26px;
-}
-
-.brand-block,
-.panel-header,
-.collection-header,
-.action-row,
-.cv-band {
-  display: flex;
-  align-items: center;
-}
-
-.brand-block {
-  gap: 12px;
-  margin-bottom: 22px;
-}
-
-.brand-mark {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  color: #ffffff;
-  background: #25636b;
-  border-radius: 8px;
-}
-
-.eyebrow {
-  margin: 0 0 4px;
-  color: #617074;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-h1,
-h2,
-h3 {
-  margin: 0;
-  color: #14252b;
-  letter-spacing: 0;
-}
-
-h1 {
-  font-size: 1.55rem;
-}
-
-h2 {
-  font-size: 1.45rem;
-}
-
-h3 {
-  font-size: 1rem;
-}
-
-.mode-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 5px;
-  margin-bottom: 18px;
-  background: #edf3f1;
-  border-radius: 8px;
-}
-
-.mode-switch button,
-.icon-text-button,
-.primary-action,
-.secondary-action,
-.file-picker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 8px;
-  font-weight: 700;
-}
-
-.mode-switch button {
-  min-height: 38px;
-  color: #526369;
-  background: transparent;
-}
-
-.mode-switch .active {
-  color: #ffffff;
-  background: #25636b;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.compact {
-  gap: 12px;
-}
-
-label {
-  display: grid;
-  gap: 7px;
-  color: #405056;
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-input,
-textarea {
-  width: 100%;
-  min-height: 42px;
-  color: #182026;
-  background: #ffffff;
-  border: 1px solid #cfdad7;
-  border-radius: 8px;
-  outline: none;
-  padding: 10px 12px;
-}
-
-textarea {
-  resize: vertical;
-  line-height: 1.45;
-}
-
-input:focus,
-textarea:focus {
-  border-color: #25636b;
-  box-shadow: 0 0 0 3px rgba(37, 99, 107, 0.14);
-}
-
-.span-all,
-.span-two {
-  grid-column: 1 / -1;
-}
-
-.primary-action {
-  min-height: 44px;
-  padding: 0 18px;
-  color: #ffffff;
-  background: #25636b;
-}
-
-.secondary-action,
-.icon-text-button {
-  min-height: 40px;
-  padding: 0 14px;
-  color: #25636b;
-  background: #e4efed;
-}
-
-.notice {
-  margin-top: 16px;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  line-height: 1.35;
-}
-
-.notice.success {
-  color: #17523e;
-  background: #e1f4ea;
-}
-
-.notice.error {
-  color: #7d1f28;
-  background: #fae2e4;
-}
-
-.notice.info {
-  color: #24466a;
-  background: #e4edf8;
-}
-
-.panel-header {
-  justify-content: space-between;
-  gap: 18px;
-  padding-bottom: 22px;
-  border-bottom: 1px solid #dde6e3;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  padding: 0 12px;
-  color: #17523e;
-  background: #e1f4ea;
-  border-radius: 999px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.profile-form {
-  display: grid;
-  gap: 18px;
-  padding-top: 22px;
-}
-
-.collection-header {
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 2px;
-}
-
-.collection-header > div {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: #25636b;
-}
-
-.entry-row {
-  position: relative;
-  display: grid;
-  gap: 12px;
-  padding: 14px 54px 14px 14px;
-  background: #f7faf9;
-  border: 1px solid #dbe5e2;
-  border-radius: 8px;
-}
-
-.skill-row {
-  grid-template-columns: minmax(130px, 1.1fr) minmax(110px, 0.6fr) minmax(180px, 1.3fr);
-}
-
-.two-column {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.icon-button {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  color: #7d1f28;
-  background: #fae2e4;
-  border: 0;
-  border-radius: 8px;
-}
-
-.action-row {
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
-.cv-band {
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 24px;
-  padding-top: 22px;
-  border-top: 1px solid #dde6e3;
-}
-
-.file-picker {
-  position: relative;
-  min-height: 42px;
-  max-width: 300px;
-  padding: 0 14px;
-  color: #405056;
-  background: #ffffff;
-  border: 1px dashed #aabbb8;
-  overflow: hidden;
-}
-
-.file-picker input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-}
-
-.file-picker span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 980px) {
-  .workspace {
-    grid-template-columns: 1fr;
+/* 3. Estilos base (aplicados al :root y body) */
+@layer base {
+  :root {
+    @apply text-[#182026] bg-[#eef3f1] font-sans;
   }
 
-  .account-panel {
-    position: static;
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply m-0 min-w-[320px] min-h-screen;
+  }
+
+  button,
+  input,
+  textarea {
+    @apply font-[inherit]; /* antes font-inherit */
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  button:disabled {
+    @apply cursor-not-allowed opacity-[0.58]; /* antes opacity-58 */
   }
 }
 
-@media (max-width: 720px) {
+/* 4. Componentes principales */
+@layer components {
   .app-shell {
-    padding: 14px;
+    @apply min-h-screen p-7;
+    background:
+      linear-gradient(135deg, rgba(238, 243, 241, 0.86), rgba(230, 237, 242, 0.92)),
+      #eef3f1;
+  }
+
+  .workspace {
+    @apply grid grid-cols-[minmax(280px,360px)_1fr] gap-6 max-w-[1380px] mx-auto items-start;
   }
 
   .account-panel,
   .profile-panel {
-    padding: 18px;
+    @apply bg-white/90 border border-[#d9e2df] rounded-lg shadow-[0_24px_60px_rgba(33,45,52,0.08)];
   }
 
-  .form-grid,
-  .skill-row,
-  .two-column {
-    grid-template-columns: 1fr;
+  .account-panel {
+    @apply p-[22px];
   }
 
-  .entry-row {
-    padding-right: 14px;
-    padding-bottom: 58px;
+  .profile-panel {
+    @apply p-[26px];
   }
 
-  .icon-button {
-    top: auto;
-    bottom: 14px;
-  }
-
+  .brand-block,
   .panel-header,
+  .collection-header,
+  .action-row,
   .cv-band {
-    align-items: flex-start;
-    flex-direction: column;
+    @apply flex items-center;
   }
 
-  .action-row,
+  .brand-block {
+    @apply gap-3 mb-[22px];
+  }
+
+  .brand-mark {
+    @apply grid place-items-center w-11 h-11 text-white bg-[#25636b] rounded-lg;
+  }
+
+  .eyebrow {
+    @apply m-0 mb-1 text-[#617074] text-[0.76rem] font-bold uppercase tracking-normal;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply m-0 text-[#14252b] tracking-normal;
+  }
+
+  h1 {
+    @apply text-[1.55rem];
+  }
+
+  h2 {
+    @apply text-[1.45rem];
+  }
+
+  h3 {
+    @apply text-base;
+  }
+
+  .mode-switch {
+    @apply grid grid-cols-2 gap-1.5 p-1.5 mb-[18px] bg-[#edf3f1] rounded-lg;
+  }
+
+  .mode-switch button,
+  .icon-text-button,
   .primary-action,
   .secondary-action,
   .file-picker {
-    width: 100%;
+    @apply inline-flex items-center justify-center gap-2 border-0 rounded-lg font-bold;
+  }
+
+  .mode-switch button {
+    @apply min-h-[38px] text-[#526369] bg-transparent;
+  }
+
+  .mode-switch .active {
+    @apply text-white bg-[#25636b];
+  }
+
+  .form-grid {
+    @apply grid grid-cols-2 gap-3.5;
+  }
+
+  .compact {
+    @apply gap-3;
+  }
+
+  label {
+    @apply grid gap-1.5 text-[#405056] text-[0.86rem] font-bold;
+  }
+
+  input,
+  textarea {
+    @apply w-full min-h-[42px] text-[#182026] bg-white border border-[#cfdad7] rounded-lg outline-none px-3 py-2.5;
+  }
+
+  textarea {
+    @apply resize-y leading-[1.45];
+  }
+
+  input:focus,
+  textarea:focus {
+    @apply border-[#25636b] shadow-[0_0_0_3px_rgba(37,99,107,0.14)];
+  }
+
+  .span-all,
+  .span-two {
+    @apply col-span-full;
+  }
+
+  .primary-action {
+    @apply min-h-[44px] px-[18px] text-white bg-[#25636b];
+  }
+
+  .secondary-action,
+  .icon-text-button {
+    @apply min-h-[40px] px-3.5 text-[#25636b] bg-[#e4efed];
+  }
+
+  .notice {
+    @apply mt-4 p-3 rounded-lg text-[0.9rem] leading-[1.35];
+  }
+
+  .notice.success {
+    @apply text-[#17523e] bg-[#e1f4ea];
+  }
+
+  .notice.error {
+    @apply text-[#7d1f28] bg-[#fae2e4];
+  }
+
+  .notice.info {
+    @apply text-[#24466a] bg-[#e4edf8];
+  }
+
+  .panel-header {
+    @apply justify-between gap-[18px] pb-[22px] border-b border-[#dde6e3];
+  }
+
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 min-h-[34px] px-3 text-[#17523e] bg-[#e1f4ea] rounded-full font-extrabold whitespace-nowrap;
+  }
+
+  .profile-form {
+    @apply grid gap-[18px] pt-[22px];
+  }
+
+  .collection-header {
+    @apply justify-between gap-4 mt-0.5;
+  }
+
+  .collection-header > div {
+    @apply inline-flex items-center gap-2 text-[#25636b];
+  }
+
+  .entry-row {
+    @apply relative grid gap-3 p-3.5 pr-14 bg-[#f7faf9] border border-[#dbe5e2] rounded-lg;
+  }
+
+  .skill-row {
+    @apply grid-cols-[minmax(130px,1.1fr)_minmax(110px,0.6fr)_minmax(180px,1.3fr)];
+  }
+
+  .two-column {
+    @apply grid-cols-2;
+  }
+
+  .icon-button {
+    @apply absolute top-3.5 right-3.5 grid w-8 h-8 place-items-center text-[#7d1f28] bg-[#fae2e4] border-0 rounded-lg;
+  }
+
+  .action-row {
+    @apply justify-end pt-1;
+  }
+
+  .cv-band {
+    @apply justify-between gap-3.5 mt-6 pt-[22px] border-t border-[#dde6e3];
+  }
+
+  .file-picker {
+    @apply relative min-h-[42px] max-w-[300px] px-3.5 text-[#405056] bg-white border border-dashed border-[#aabbb8] overflow-hidden;
+  }
+
+  .file-picker input {
+    @apply absolute inset-0 opacity-0;
+  }
+
+  .file-picker span {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+}
+
+/* 5. Estilos responsivos (media queries) */
+@layer utilities {
+  @media (max-width: 980px) {
+    .workspace {
+      @apply grid-cols-1;
+    }
+
+    .account-panel {
+      @apply static;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .app-shell {
+      @apply p-3.5;
+    }
+
+    .account-panel,
+    .profile-panel {
+      @apply p-[18px];
+    }
+
+    .form-grid,
+    .skill-row,
+    .two-column {
+      @apply grid-cols-1;
+    }
+
+    .entry-row {
+      @apply pr-3.5 pb-[58px];
+    }
+
+    .icon-button {
+      @apply top-auto bottom-3.5;
+    }
+
+    .panel-header,
+    .cv-band {
+      @apply items-start flex-col;
+    }
+
+    .action-row,
+    .primary-action,
+    .secondary-action,
+    .file-picker {
+      @apply w-full;
+    }
   }
 }
