@@ -26,6 +26,11 @@ export class ProfileController {
         return await this.profileService.getProfilesByPeopleId(reqUser.personId);
     }
 
+    @Get(":id")
+    async getProfileById(@Param("id") id: string): Promise<ProfileResponseDto> {
+        return await this.profileService.getProfileById(id);
+    }
+
     @Put(":id")
     async updateProfile(@Param("id") id: string, @Body() profileData: CreateProfileDto): Promise<ProfileResponseDto> {
         return await this.profileService.updateProfile(id, profileData);

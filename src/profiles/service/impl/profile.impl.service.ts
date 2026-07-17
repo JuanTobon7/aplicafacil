@@ -6,7 +6,6 @@ import { ProfileModel } from "src/profiles/models/profiles.model";
 import { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PeopleService } from "src/people/service/contract/people.service";
-import { PeopleModel } from "src/people/models/people.model";
 import { PeopleMapper } from "src/people/mapper/people.mapper";
 
 
@@ -36,8 +35,22 @@ export class ProfileServiceImpl extends ProfileService {
 
     async getProfilesByPeopleId(id: string): Promise<ProfileResponseDto[]> {
         console.debug(`Fetching profiles for person with id: ${id}`);
-        const profiles = await this.profileRepository.findBy({ people: {id: id} });
+        const profiles = await this.profileRepository.findBy(
+            { 
+                people: {id: id} 
+            }
+        );
+        console.debug(`Found ${profiles.length} profiles for person with id: ${id}`);
         return profiles.map(ProfileMapper.toDto);
+    }
+
+    async getProfilesById(id: string): Promise<ProfileResponseDto> {
+        // Implement logic to get a profile by ID
+        const profile = await this.profileRepository.findOneBy({ id });
+        if (!profile) {
+            throw new Error(`Profile with id ${id} not found`);
+        }
+        return ProfileMapper.toDto(profile);
     }
 
     async getProfileById(id: string): Promise<ProfileResponseDto> {

@@ -18,8 +18,13 @@ export class PeopleServiceImpl extends PeopleService {
 
     async create(dto: CreatePeopleDto): Promise<PeopleDto> {
         const newPerson: PeopleDto = PeopleCreateMapper.toDto(this.peopleRepository.create(dto));
+        const existingPerson: PeopleModel | null = await this.peopleRepository.findOneBy({ email: newPerson.email });
+        if (existingPerson) {
+            throw new Error(`Person with email ${newPerson.email} already exists`);
+        }
         const personEntity: PeopleModel = PeopleMapper.fromDto(newPerson);
         const savedPerson: PeopleModel = await this.peopleRepository.save(personEntity);
+        
         return PeopleMapper.toDto(savedPerson);
     }
 

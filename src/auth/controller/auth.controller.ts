@@ -15,15 +15,10 @@ export class AuthController {
     @Res() Response: any,
   ):Promise<string> {
     const response = await this.authService.login(loginDto);
-    Response.cookie('access_token', 
-      response.access_token, 
-      { 
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-      }
-    );
-    return Response.status(202).send("Login successful");
+    return Response.status(202).send({
+      message: 'Login successful',
+      access_token: response.access_token,
+    });
   }
 
   @Post('register')
