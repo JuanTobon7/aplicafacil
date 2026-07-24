@@ -23,7 +23,7 @@ export class FactoryStorageMediaImpl extends FactoryStorageMedia {
     this.type = this.configService.getOrThrow<StorageMediaType>("STORAGE_MODE");
   }
 
-  async getAvailableStorageMedia(): Promise<StorageMedia> {
+   getAvailableStorageMedia(): StorageMedia {
     switch (this.type) {
       case StorageMediaType.LOCAL:
         return this.localStorageMedia;

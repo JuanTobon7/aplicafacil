@@ -4,5 +4,5 @@ import { StorageMedia } from "./storage.media";
 export abstract class FactoryStorageMedia {
   protected storageMedia!: StorageMedia;
   protected type!: StorageMediaType;
-  abstract getAvailableStorageMedia(): Promise<StorageMedia>;
+  abstract getAvailableStorageMedia(): StorageMedia;
 }

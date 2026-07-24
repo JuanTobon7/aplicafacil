@@ -10,4 +10,8 @@ export abstract class StorageMedia {
   abstract getMedia(
     id: string,
   ): Promise<string | null>;
+
+  abstract deleteMedia(
+    id: string,
+  ): Promise<void>;
 }

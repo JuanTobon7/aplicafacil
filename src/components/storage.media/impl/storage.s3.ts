@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 
 import {
@@ -94,6 +95,24 @@ export class StorageS3Cloud extends StorageMedia {
     } catch {
 
       return null;
+    }
+  }
+
+  async deleteMedia(
+    id: string,
+  ): Promise<void> {
+    try {
+
+      await this.s3.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: id,
+        }),
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error deleting file from S3',
+      );
     }
   }
 }

@@ -3,13 +3,16 @@ import {
   PrimaryGeneratedColumn,
   OneToMany,
   ManyToOne,
-  Column
+  Column,
+  OneToOne,
+  JoinColumn
 } from 'typeorm';
 import { ExperiencesModel } from './experiences.model';
 import { EducationModel } from './education.model';
 import { ProjectModel } from './projects.model';
 import { SkillsModel } from './skills.model';
 import { PeopleModel } from 'src/people/models/people.model';
+import { CvsModel } from './cvs.model';
 
 @Entity('profiles')
 export class ProfileModel {
@@ -65,4 +68,15 @@ export class ProfileModel {
         (people) => people.id,
     )
     people!: PeopleModel;
+
+    @OneToOne(
+    () => CvsModel,
+        {
+        cascade: true,
+        eager: true,
+        nullable: true,
+        },
+    )
+    @JoinColumn()
+    cv?: CvsModel;
 }

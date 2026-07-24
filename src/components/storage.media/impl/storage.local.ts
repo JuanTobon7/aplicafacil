@@ -65,4 +65,17 @@ export class LocalStorageMedia extends StorageMedia {
       return null;
     }
   }
+
+  async deleteMedia(
+    id: string,
+  ): Promise<void> {
+    const filePath = path.join(this.uploadPath, id);
+    try {
+      await fs.unlink(filePath);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        "Error deleting file from local storage",
+      );
+    }
+  }
 }

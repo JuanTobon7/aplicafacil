@@ -61,6 +61,7 @@ export class ProfileServiceImpl extends ProfileService {
         }
         return ProfileMapper.toDto(profile);
     }
+    
     async updateProfile(id: string, profileData: CreateProfileDto): Promise<ProfileResponseDto> {
         // Implement logic to update a profile
         const profile = await this.profileRepository.findOneBy({ id });

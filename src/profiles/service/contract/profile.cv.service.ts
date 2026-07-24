@@ -1,3 +1,5 @@
+import { ProfileResponseDto } from "src/profiles/dto/profile.response.dto";
+
 export abstract class ProfileCvService {
     /**
      * 
@@ -19,4 +21,6 @@ export abstract class ProfileCvService {
      * @return {Promise<void>}
      */
     abstract deleteCv(id: string): Promise<void>;
+
+    abstract extractProfileDataFromCv(file: any): Promise<ProfileResponseDto>;
 }
