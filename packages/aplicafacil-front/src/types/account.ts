@@ -37,3 +37,7 @@ export type LoginPayload = {
   username: string;
   password: string;
 };
+
+import type { useCvUpload } from '../hooks/useCvUpload'; // ajustá la ruta real
+
+export type CvUploadApi = ReturnType<typeof useCvUpload>;

@@ -31,3 +31,8 @@ export async function uploadProfileCv(profileId: string, file: File): Promise<vo
     },
   });
 }
+
+
+export async function deleteProfile(profileId: string): Promise<void> {
+  await httpClient.delete(`/profiles/${profileId}`);
+}

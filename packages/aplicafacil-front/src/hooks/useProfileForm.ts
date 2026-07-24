@@ -1,6 +1,6 @@
-import { useMemo, useState,useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { createProfile, getProfileById, getProfiles } from '../api/profileApi';
+import { createProfile, deleteProfile, getProfileById, getProfiles } from '../api/profileApi';
 import type { Notice } from '../types/notice';
 import type { EducationForm, ExperienceForm, ProfileForm, ProfileResponse, SkillForm } from '../types/profile';
 import { createProfileState, emptyEducation, emptyExperience, emptySkill } from '../utils/profileDefaults';
@@ -17,6 +17,7 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [savedProfileId, setSavedProfileId] = useState<string | null>(null);
   const [profileBank, setProfileBank] = useState<ProfileResponse[]>([]);
+  const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     getProfilesBank();
@@ -108,7 +109,7 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
         message: error instanceof Error ? error.message : 'No fue posible cargar los profiles guardados.',
       });
     }
-  }
+  };
 
   const getProfilesBank = async () => {
     try {
@@ -120,20 +121,54 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
         message: error instanceof Error ? error.message : 'No fue posible cargar los profiles guardados.',
       });
     }
-  }
+  };
+
+  const removeProfile = async (id: string) => {
+    setNotice(null);
+    setDeletingProfileId(id);
+
+    try {
+      await deleteProfile(id);
+      await getProfilesBank();
+
+      // Si el perfil borrado era el que está cargado en el form, lo limpiamos
+      if (savedProfileId === id) {
+        setProfile(createProfileState());
+        setSavedProfileId(null);
+      }
+
+      setNotice({ tone: 'success', message: 'Profile eliminado.' });
+    } catch (error) {
+      setNotice({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'No fue posible eliminar el profile.',
+      });
+    } finally {
+      setDeletingProfileId(null);
+    }
+  };
+
+  const startNewProfile = () => {
+    setProfile(createProfileState());
+    setSavedProfileId(null);
+    setNotice(null);
+  };
 
   return {
-    getProfile,
     addEducation,
     addExperience,
     addSkill,
+    deletingProfileId,
+    getProfile,
     isSavingProfile,
     profile,
     profileBank,
     profileReady,
     removeEntry,
+    removeProfile,
     saveProfile,
     savedProfileId,
+    startNewProfile,
     updateBasics,
     updateEducation,
     updateExperience,

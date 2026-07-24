@@ -57,6 +57,7 @@
 
 /* 4. Componentes principales */
 @layer components {
+  
   .app-shell {
     @apply min-h-screen p-7;
     background:
@@ -68,13 +69,8 @@
     @apply grid grid-cols-[minmax(280px,360px)_1fr] gap-6 max-w-[1380px] mx-auto items-start;
   }
 
-  .account-panel,
   .profile-panel {
     @apply bg-white/90 border border-[#d9e2df] rounded-lg shadow-[0_24px_60px_rgba(33,45,52,0.08)];
-  }
-
-  .account-panel {
-    @apply p-[22px];
   }
 
   .profile-panel {
@@ -179,22 +175,6 @@
     @apply min-h-[40px] px-3.5 text-[#25636b] bg-[#e4efed];
   }
 
-  .notice {
-    @apply mt-4 p-3 rounded-lg text-[0.9rem] leading-[1.35];
-  }
-
-  .notice.success {
-    @apply text-[#17523e] bg-[#e1f4ea];
-  }
-
-  .notice.error {
-    @apply text-[#7d1f28] bg-[#fae2e4];
-  }
-
-  .notice.info {
-    @apply text-[#24466a] bg-[#e4edf8];
-  }
-
   .panel-header {
     @apply justify-between gap-[18px] pb-[22px] border-b border-[#dde6e3];
   }
@@ -259,9 +239,6 @@
       @apply grid-cols-1;
     }
 
-    .account-panel {
-      @apply static;
-    }
   }
 
   @media (max-width: 720px) {
@@ -269,7 +246,7 @@
       @apply p-3.5;
     }
 
-    .account-panel,
+    
     .profile-panel {
       @apply p-[18px];
     }
@@ -300,4 +277,139 @@
       @apply w-full;
     }
   }
+  @layer components {
+  .nav-bar {
+    @apply sticky top-0 z-10 flex items-center justify-between
+           px-4 py-2.5 gap-2
+           sm:px-6 sm:py-3
+           bg-white/90 backdrop-blur
+           border-b border-[#d9e2df];
+  }
+
+  .nav-bar-actions {
+    @apply flex items-center gap-2 sm:gap-3;
+  }
+
+  .nav-user-chip {
+    @apply inline-flex items-center gap-2
+           px-2.5 py-1.5 sm:px-3 sm:py-2
+           rounded-full
+           text-sm font-medium text-[#3f4a4d]
+           border border-transparent
+           hover:bg-[#eef2f1] transition-colors duration-150;
+  }
+
+  .nav-user-chip.active {
+    @apply border-[#2f6f5e]/40 bg-[#eef7f4] text-[#1f4f42];
+  }
+
+  .nav-avatar {
+    @apply flex items-center justify-center
+           w-7 h-7 rounded-full shrink-0
+           bg-[#2f6f5e] text-white
+           text-xs font-semibold uppercase;
+  }
+
+  .nav-user-name {
+    @apply hidden sm:inline text-sm font-medium
+           max-w-[9rem] truncate;
+  }
+  }
+  @layer components {
+  /* Contenedor de la vista /auth */
+  .auth-shell {
+    @apply min-h-screen flex items-center justify-center p-7;
+    background:
+      linear-gradient(135deg, rgba(238, 243, 241, 0.86), rgba(230, 237, 242, 0.92)),
+      #eef3f1;
+  }
+
+  /* El panel en sí */
+  .account-panel {
+    @apply static bg-white/90 border border-[#d9e2df] rounded-lg
+           shadow-[0_24px_60px_rgba(33,45,52,0.08)]
+           p-[22px] w-full max-w-[420px];
+  }
+
+  @media (max-width: 720px) {
+    .auth-shell {
+      @apply p-3.5;
+    }
+
+    .account-panel {
+      @apply p-[18px];
+    }
+  }
+}
+@theme {
+  --animate-toast-in: toast-in 0.25s ease-out;
+  --animate-toast-out: toast-out 0.2s ease-in forwards;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes toast-out {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
+}
+
+@layer components {
+  .toast-viewport {
+    @apply fixed top-4 right-4 z-50
+           flex flex-col gap-2
+           w-full max-w-sm
+           pointer-events-none;
+  }
+
+  .toast {
+    @apply pointer-events-auto
+           flex items-start justify-between gap-3
+           p-3 rounded-lg text-[0.9rem] leading-[1.35]
+           border border-black/5
+           shadow-[0_12px_32px_rgba(33,45,52,0.18)]
+           animate-toast-in;
+  }
+
+  .toast.success {
+    @apply text-[#17523e] bg-[#e1f4ea];
+  }
+
+  .toast.error {
+    @apply text-[#7d1f28] bg-[#fae2e4];
+  }
+
+  .toast.info {
+    @apply text-[#24466a] bg-[#e4edf8];
+  }
+
+  .toast.leaving {
+    @apply animate-toast-out;
+  }
+
+  .toast-close {
+    @apply shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-150 cursor-pointer;
+  }
+
+  @media (max-width: 640px) {
+    .toast-viewport {
+      @apply top-3 right-3 left-3 max-w-none;
+    }
+  }
+}
+
 }

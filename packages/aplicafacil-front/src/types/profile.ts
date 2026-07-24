@@ -1,3 +1,4 @@
+import type { useProfileForm } from '../hooks/useProfileForm'; // ajustá la ruta real
 export type SkillForm = {
   id?: string;
   name: string;
@@ -65,3 +66,6 @@ export type ProfileResponse = {
   title: string;
   summary: string;
 };
+
+
+export type ProfileFormApi = ReturnType<typeof useProfileForm>;
