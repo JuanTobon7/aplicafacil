@@ -2,10 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { ProfileResponseDto } from 'src/profiles/dto/profile.response.dto';
 
 export interface FillFormRequest {
   system: string;
   prompt: string;
+}
+
+export interface FillCvRequest extends FillFormRequest {
+  data: string;
 }
 
 export interface FillFormResponse {
@@ -159,6 +164,23 @@ export class McpClientService {
         `Error calling searchPeople from MCP server: ${error instanceof Error ? error.message : String(error)}`,
       );
       throw error;
+    }
+  }
+
+  async getProfileDataFromCv(data: FillCvRequest): Promise<ProfileResponseDto> {
+    const responseText = await firstValueFrom(
+      this.httpService.post<ProfileResponseDto>(
+        `${this.mcpServerUrl}/tools/profile/cv/extract`,
+        data,
+      ),
+    );
+    try {
+      return responseText.data;
+    } catch (error) {
+      this.logger.error(
+        `Error parsing response from MCP server: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new Error('Failed to parse profile data from CV');
     }
   }
 }

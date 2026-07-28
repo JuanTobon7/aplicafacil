@@ -10,11 +10,18 @@ import { ExperiencesModel } from "../models/experiences.model";
 import { EducationModel } from "../models/education.model";
 import { ProjectModel } from "../models/projects.model";
 import { PeopleModule } from "src/people/module/people.module";
+import { CvsModel } from "../models/cvs.model";
+import { ProfileCvServiceImpl } from "../service/impl/profile.cv.impl.service";
+import { ProfileCvService } from "../service/contract/profile.cv.service";
+import { StorageModule } from "src/components/storage.media/module/storage.module";
+import { McpClientModule } from "src/mcp-client";
 
 
 @Module({
   imports: [
     PeopleModule,
+    McpClientModule,
+    StorageModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -23,6 +30,7 @@ import { PeopleModule } from "src/people/module/people.module";
       SkillsModel,
       ExperiencesModel,
       EducationModel,
+      CvsModel,
       ProjectModel
     ]),
   ],
@@ -31,6 +39,10 @@ import { PeopleModule } from "src/people/module/people.module";
     {
       provide: ProfileService,
       useClass: ProfileServiceImpl,
+    },
+    {
+      provide: ProfileCvService,
+      useClass: ProfileCvServiceImpl,
     },
   ],
 })

@@ -1,13 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Req, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { ProfileService } from "../service/contract/profile.service";
 import { ProfileResponseDto } from "../dto/profile.response.dto";
 import { CreateProfileDto } from "../dto/create.profile.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { JwtPayload } from "src/auth/types/jwt.payload";
+import { ProfileCvService } from "../service/contract/profile.cv.service";
 
 @Controller("profiles")
 export class ProfileController {
-    constructor(private readonly profileService: ProfileService) {}
+    constructor(
+        @Inject(ProfileService)
+        private readonly profileService: ProfileService,
+        @Inject(ProfileCvService)
+        private readonly profileCvService: ProfileCvService
+    ) {}
 
     @Post()
     async createProfile(
@@ -45,6 +51,12 @@ export class ProfileController {
     @UseInterceptors(FileInterceptor('file'))
     async uploadCV(@Param("id") id: string, 
     @UploadedFile() file: any): Promise<void> {
+        return this.profileCvService.uploadCv(id, file);
+    }
 
+    @Post("cv/extract")
+    @UseInterceptors(FileInterceptor('cv'))
+    async extractProfileDataFromCv(@UploadedFile() file: Express.Multer.File): Promise<ProfileResponseDto> {
+        return await this.profileCvService.extractProfileDataFromCv(file);
     }
 }

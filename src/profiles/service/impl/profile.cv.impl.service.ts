@@ -2,8 +2,6 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 
-import { File } from "buffer";
-
 import { ProfileCvService } from "../contract/profile.cv.service";
 import { ProfileResponseDto } from "src/profiles/dto/profile.response.dto";
 
@@ -12,6 +10,8 @@ import { CvsModel } from "src/profiles/models/cvs.model";
 
 import { FactoryStorageMedia } from "src/components/storage.media/contract/storage.factory.media";
 import { FileInterceptorFactory } from "src/components/storage.media/impl/file.factory.interceptor";
+import { FillCvRequest, McpClientService } from "src/mcp-client";
+import { CV_SYSTEM_EXTRACT } from "src/mcp-client/prompts/cv.prompt";
 
 @Injectable()
 export class ProfileCvServiceImpl
@@ -22,14 +22,15 @@ export class ProfileCvServiceImpl
     private readonly profileRepository: Repository<ProfileModel>,
 
     private readonly storageFactory: FactoryStorageMedia,
+    private readonly mcp: McpClientService
   ) {}
 
   async uploadCv(
     id: string,
-    file: File,
+    file: Express.Multer.File,
   ): Promise<void> {
     const interceptor =
-      FileInterceptorFactory.fromMimeType(file.type);
+      FileInterceptorFactory.fromMimeType(file.mimetype);
 
     const sanitized =
       await interceptor.sanitizeFile(file);
@@ -45,7 +46,7 @@ export class ProfileCvServiceImpl
       `${id}.pdf`,
       "cv",
       buffer,
-      file.type,
+      file.mimetype,
     );
 
     const profile =
@@ -67,7 +68,7 @@ export class ProfileCvServiceImpl
     }
     
     profile.cv.filePath = url;
-    profile.cv.mimeType = file.type;
+    profile.cv.mimeType = file.mimetype;
 
     await this.profileRepository.save(profile);
   }
@@ -117,23 +118,29 @@ export class ProfileCvServiceImpl
   }
 
   async extractProfileDataFromCv(
-    file: File,
+    file: Express.Multer.File,
   ): Promise<ProfileResponseDto> {
     const interceptor =
-      FileInterceptorFactory.fromMimeType(file.type);
+      FileInterceptorFactory.fromMimeType(file.mimetype);
 
     const sanitized =
       await interceptor.sanitizeFile(file);
 
     const reduced =
       await interceptor.reduceFile(sanitized);
+    console.log("REDUCED TYPE:", typeof reduced);
+    console.log("REDUCED IS BUFFER:", Buffer.isBuffer(reduced));
+    const payload:FillCvRequest = {
+      prompt: CV_SYSTEM_EXTRACT,
+      system: "You are a system that extracts structured data from CVs.",
+      data: reduced,
+    };
 
-    const buffer =
-      await interceptor.getBufferFromFile(reduced);
+    console.log("MCP PAYLOAD:", payload);
+    console.log("MCP DATA TYPE:", typeof payload.data);
+    console.log("MCP DATA IS BUFFER:", Buffer.isBuffer(payload.data));
 
-    // TODO:
-    // Llamar aquí al OCR o IA usando `buffer`
-
-    return new ProfileResponseDto();
+    const response : ProfileResponseDto = await this.mcp.getProfileDataFromCv(payload)
+    return response;
   }
 }

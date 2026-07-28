@@ -91,4 +91,5 @@ export class WordFileInterceptor extends FileInterceptor {
 
         return Buffer.from(textOnly, 'utf-8');
     }
+
 }

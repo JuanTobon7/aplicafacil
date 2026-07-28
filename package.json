@@ -21,11 +21,6 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "sanitize-html": "^2.13.0",
-    "pdf-lib": "^1.17.1",
-    "pdf-parse": "^1.1.1",
-    "jszip": "^3.10.1",
-    "mammoth": "^1.8.0",
     "@aws-sdk/client-s3": "^3.1070.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@nestjs/axios": "^4.0.1",
@@ -45,13 +40,18 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "ioredis": "^5.11.1",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.8.0",
     "openai": "^6.42.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.21.0",
     "pgvector": "^0.3.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sanitize-html": "^2.13.0",
     "typeorm": "^1.0.0"
   },
   "devDependencies": {

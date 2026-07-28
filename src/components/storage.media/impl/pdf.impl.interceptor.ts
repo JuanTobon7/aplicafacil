@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName } from 'pdf-lib';
+import { PDFDocument, PDFName,PDFDict } from 'pdf-lib';
 import pdfParse from 'pdf-parse';
 import { FileLike, isBufferLike } from 'src/profiles/types/types.file';
 import { FileInterceptor } from '../contract/file.interceptor';
@@ -46,7 +46,10 @@ export class PdfFileInterceptor extends FileInterceptor {
         catalog.delete(PDFName.of('OpenAction'));
 
         // Elimina el diccionario Names -> JavaScript (scripts embebidos en el documento)
-        const namesDict = catalog.lookupMaybe(PDFName.of('Names'), (pdfDoc as any).context.constructor?.PDFDict);
+        const namesDict = catalog.lookupMaybe(
+            PDFName.of('Names'),
+            PDFDict
+        );
         if (namesDict && typeof (namesDict as any).delete === 'function') {
             (namesDict as any).delete(PDFName.of('JavaScript'));
         }
@@ -71,12 +74,12 @@ export class PdfFileInterceptor extends FileInterceptor {
      * "Reduce" el PDF: extrae únicamente el texto plano, descartando todo
      * el marcado/estructura interna del PDF (fuentes, posiciones, imágenes, etc).
      */
-    async reduceFile(file: FileLike): Promise<Buffer> {
+    async reduceFile(file: FileLike): Promise<string> {
         const buffer = await this.getBufferFromFile(file);
         const data = await pdfParse(buffer);
 
         const textOnly = data.text.replace(/\s+/g, ' ').trim();
 
-        return Buffer.from(textOnly, 'utf-8');
+        return textOnly
     }
 }

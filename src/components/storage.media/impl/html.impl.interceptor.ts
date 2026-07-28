@@ -79,4 +79,9 @@ export class HtmlFileInterceptor extends FileInterceptor {
 
         return Buffer.from(textOnly, 'utf-8');
     }
+
+    async getTextFromFile(file: FileLike): Promise<string> {
+        const buffer = await this.reduceFile(file);
+        return buffer.toString('utf-8');
+    }
 }
