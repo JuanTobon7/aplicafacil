@@ -35,3 +35,16 @@ export async function uploadProfileCv(profileId: string, file: File): Promise<vo
 export async function deleteProfile(profileId: string): Promise<void> {
   await httpClient.delete(`/profiles/${profileId}`);
 }
+
+export async function extractProfileFromCv(file: File): Promise<ProfileForm> {
+  const formData = new FormData();
+  formData.append('cv', file);
+
+  const { data } = await httpClient.post<ProfileForm>('/profiles/cv/extract', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return data;
+}

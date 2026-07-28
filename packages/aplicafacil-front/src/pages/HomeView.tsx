@@ -29,10 +29,14 @@ export function HomeView({ isAuthenticated, profileForm, cvUpload }: HomeViewPro
           isAuthenticated={isAuthenticated}
           isSavingProfile={profileForm.isSavingProfile}
           isUploadingCv={cvUpload.isUploadingCv}
+          isExtractingProfile={cvUpload.isExtractingProfile}
+          onSelectCvToExtract={cvUpload.selectCvToExtract}
+          onExtractProfile={cvUpload.extractProfile}
           profile={profileForm.profile}
           profileReady={profileForm.profileReady}
           savedProfileId={profileForm.savedProfileId}
           selectedCv={cvUpload.selectedCv}
+          selectedCvToExtract={cvUpload.selectedCvToExtract}
           onAddEducation={profileForm.addEducation}
           onAddExperience={profileForm.addExperience}
           onAddSkill={profileForm.addSkill}

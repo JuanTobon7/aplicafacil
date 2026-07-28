@@ -1,19 +1,24 @@
 import { CheckCircle2, Save } from 'lucide-react';
-import { CvUploadSection } from './CvUploadSection';
+import { CvExtractSection } from './CvExtractSection';
 import { EducationSection } from './EducationSection';
 import { ExperienceSection } from './ExperienceSection';
 import { ProfileBasics } from './ProfileBasics';
 import { SkillsSection } from './SkillsSection';
 import type { EducationForm, ExperienceForm, ProfileForm, SkillForm } from '../types/profile';
+import { CvUploadSection } from './CvUploadSection';
 
 type ProfilePanelProps = {
   isAuthenticated: boolean;
   isSavingProfile: boolean;
   isUploadingCv: boolean;
+  isExtractingProfile: boolean;
+  onSelectCvToExtract: (event: any) => void;
+  onExtractProfile: () => void;
   profile: ProfileForm;
   profileReady: boolean;
   savedProfileId: string | null;
   selectedCv: File | null;
+  selectedCvToExtract: File | null;
   onAddEducation: () => void;
   onAddExperience: () => void;
   onAddSkill: () => void;
@@ -31,10 +36,13 @@ export function ProfilePanel({
   isAuthenticated,
   isSavingProfile,
   isUploadingCv,
+  isExtractingProfile,
+  onSelectCvToExtract,
   profile,
   profileReady,
   savedProfileId,
   selectedCv,
+  selectedCvToExtract,
   onAddEducation,
   onAddExperience,
   onAddSkill,
@@ -46,6 +54,7 @@ export function ProfilePanel({
   onUpdateExperience,
   onUpdateSkill,
   onUploadCv,
+  onExtractProfile,
 }: ProfilePanelProps) {
   return (
     <section className="profile-panel">
@@ -63,6 +72,12 @@ export function ProfilePanel({
       </div>
 
       <form className="profile-form" onSubmit={onSaveProfile}>
+        <CvExtractSection
+          isExtractingProfile={isExtractingProfile}
+          selectedCv={selectedCvToExtract}
+          onSelectCvToExtract={onSelectCvToExtract}
+          onExtractProfile={onExtractProfile}
+        />
         <ProfileBasics profile={profile} onUpdateBasics={onUpdateBasics} />
         <SkillsSection
           skills={profile.skills}

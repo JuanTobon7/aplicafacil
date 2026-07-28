@@ -190,6 +190,20 @@ export async function searchPeopleRoute(req: Request, res: Response) {
   }
 }
 
+export async function extractProfileFromCvRoute(req: Request, res: Response) {
+  const requestId = `${Date.now()}-${Math.random()}`;
+  logger.info(`[${requestId}] 📄 /tools/extract-profile-from-cv request started`, {
+    body: req.body,
+  });
+  res.json("null")
+  const aiProvider = new OpenRouterAdapter();
+  const result = await aiProvider.extractProfileFromCv(req.body);
+  logger.success(`[${requestId}] Profile extraction completed`, {
+    resultType: typeof result,
+  });
+  res.json(result);
+}
+
 /**
  * GET /health
  * Health check endpoint

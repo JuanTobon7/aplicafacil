@@ -72,4 +72,43 @@ export class OpenRouterAdapter implements AiProvider {
         });
         return response.data[0].embedding;
     }
+
+    async extractProfileFromCv(
+        request: {
+            system: string;
+            prompt: string;
+            data: string
+        }
+    ): Promise<string> {
+        logger.info("OpenRouterAdapter.extractProfileFromCv request", {
+            system: request.system,
+            prompt: request.prompt,
+            data: request.data,
+        });
+        const response =
+            await this.client.chat.completions.create({
+                model:
+                    process.env.OPENROUTER_MODEL ??
+                    "google/gemini-2.5-flash",
+                temperature: 0,
+                messages: [
+                    {
+                        role: "system",
+                        content: request.system,
+                    },
+                    {
+                        role: "user",
+                        content: request.prompt,
+                    },
+                ],
+            });
+        logger.info("OpenRouterAdapter.extractProfileFromCv response", {
+            response: response
+        });
+        return (
+            response.choices[0]
+                ?.message
+                ?.content ?? ""
+        );
+    }
 }

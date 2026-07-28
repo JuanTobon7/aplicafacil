@@ -3,6 +3,7 @@ import cors from 'cors';
 import {
   fillFormRoute,
   embeddingsRoute,
+  extractProfileFromCvRoute,
   searchProfileRoute,
   searchPeopleRoute,
   healthRoute,
@@ -44,6 +45,7 @@ export function createExpressApp(): Express {
   app.post('/tools/embeddings', embeddingsRoute);
   app.get('/tools/search-profile', searchProfileRoute);
   app.post('/tools/search-people', searchPeopleRoute);
+  app.post('/tools/profile/cv/extract', extractProfileFromCvRoute);
 
   // ====================================
   // ERROR HANDLING
