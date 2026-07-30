@@ -173,5 +173,6 @@ export function useProfileForm({ setNotice }: UseProfileFormOptions) {
     updateEducation,
     updateExperience,
     updateSkill,
+    setProfile,
   };
 }

@@ -18,6 +18,7 @@ type ProfilePanelProps = {
   profileReady: boolean;
   savedProfileId: string | null;
   selectedCv: File | null;
+  extractedProfile: ProfileForm | null;
   selectedCvToExtract: File | null;
   onAddEducation: () => void;
   onAddExperience: () => void;
@@ -43,6 +44,7 @@ export function ProfilePanel({
   savedProfileId,
   selectedCv,
   selectedCvToExtract,
+  extractedProfile,
   onAddEducation,
   onAddExperience,
   onAddSkill,
@@ -56,6 +58,7 @@ export function ProfilePanel({
   onUploadCv,
   onExtractProfile,
 }: ProfilePanelProps) {
+
   return (
     <section className="profile-panel">
       <div className="panel-header">

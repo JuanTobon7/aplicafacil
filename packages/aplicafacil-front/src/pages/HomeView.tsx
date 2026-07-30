@@ -26,6 +26,7 @@ export function HomeView({ isAuthenticated, profileForm, cvUpload }: HomeViewPro
           />
         </div>
         <ProfilePanel
+          extractedProfile={cvUpload.extractedProfile}
           isAuthenticated={isAuthenticated}
           isSavingProfile={profileForm.isSavingProfile}
           isUploadingCv={cvUpload.isUploadingCv}

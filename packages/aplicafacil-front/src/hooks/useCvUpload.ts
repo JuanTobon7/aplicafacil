@@ -53,11 +53,13 @@ export function useCvUpload({ profileId, setNotice }: UseCvUploadOptions) {
     try {
       console.log('extractProfile', selectedCvToExtract);
       const extracted = await extractProfileFromCv(selectedCvToExtract);
+      console.log('extracted', extracted);
       setExtractedProfile(extracted);
       setNotice({
         tone: 'success',
         message: 'CV procesado. El server extrajo la información del CV.',
       });
+      setSelectedCv(selectedCvToExtract);
     } catch (error) {
       setNotice({
         tone: 'error',
@@ -72,6 +74,7 @@ export function useCvUpload({ profileId, setNotice }: UseCvUploadOptions) {
     isUploadingCv,
     isExtractingProfile,
     selectedCv,
+    extractedProfile,
     selectedCvToExtract,
     selectCv,
     selectCvToExtract,

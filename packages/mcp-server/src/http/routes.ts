@@ -195,12 +195,12 @@ export async function extractProfileFromCvRoute(req: Request, res: Response) {
   logger.info(`[${requestId}] 📄 /tools/extract-profile-from-cv request started`, {
     body: req.body,
   });
-  res.json("null")
   const aiProvider = new OpenRouterAdapter();
   const result = await aiProvider.extractProfileFromCv(req.body);
   logger.success(`[${requestId}] Profile extraction completed`, {
     resultType: typeof result,
   });
+  logger.debug(`[${requestId}] Extraction result:`, result);
   res.json(result);
 }
 

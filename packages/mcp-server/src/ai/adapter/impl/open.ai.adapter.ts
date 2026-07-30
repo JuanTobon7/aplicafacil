@@ -100,11 +100,16 @@ export class OpenRouterAdapter implements AiProvider {
                         role: "user",
                         content: request.prompt,
                     },
+                    {
+                        content: request.data,
+                        role: "user",
+                    }
                 ],
             });
         logger.info("OpenRouterAdapter.extractProfileFromCv response", {
             response: response
         });
+        console.dir(response, { depth: null });
         return (
             response.choices[0]
                 ?.message

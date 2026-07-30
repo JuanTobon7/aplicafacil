@@ -9,6 +9,7 @@ export class AiProviderFactory {
     constructor(
         private readonly configService: ConfigService,
         private readonly openRouterAdapter: OpenRouterAdapter,
+        private readonly omniRouteAdapter: OpenRouterAdapter,
     ) {}
 
     getProvider(): AiProvider {
@@ -21,7 +22,8 @@ export class AiProviderFactory {
         switch (providerName.toLowerCase()) {
             case "openrouter":
                 return this.openRouterAdapter;
-
+            case "omniroute":
+                return this.omniRouteAdapter;
             default:
                 throw new Error(
                     `AiProvider "${providerName}" no soportado`,

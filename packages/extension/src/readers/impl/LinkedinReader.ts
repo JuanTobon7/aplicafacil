@@ -1,4 +1,3 @@
-import { postRecommendations } from "../../api/recommendations";
 import { RadioGroupProcessor } from "../../core/RadioGroupProcessor";
 import { StandardInputProcessor } from "../../core/StandardInputProcessor";
 import { FormField, JobForm } from "../../core/types/forms";
@@ -69,11 +68,6 @@ export class LinkedinReader implements Reader {
       metadata,
     };
     console.log("[LinkedinReader] Returning with form and fields:", result);
-    postRecommendations(result).then(recs => {
-        console.log("[LinkedinReader] Recommendations received:", recs);
-      }).catch(err => {
-        console.error("[LinkedinReader] Error posting for recommendations:", err);
-    });
     return result;
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavBar } from './components/NavBar';
 import { NoticeMessage } from './components/NoticeMessage';
 import { useAccountFlow } from './hooks/useAccountFlow';
@@ -20,7 +20,11 @@ export default function App() {
     profileId: profileForm.savedProfileId,
     setNotice,
   });
-
+  useEffect(() => {
+    if (cvUpload.extractedProfile) {
+      profileForm.setProfile(cvUpload.extractedProfile);
+    }
+  }, [cvUpload.extractedProfile]);
   return (
     <>
       <NavBar
