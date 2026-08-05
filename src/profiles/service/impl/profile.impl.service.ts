@@ -7,6 +7,7 @@ import { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PeopleService } from "src/people/service/contract/people.service";
 import { PeopleMapper } from "src/people/mapper/people.mapper";
+import { ProfileVectorService } from "src/ai/service/contract/vector.profile.service";
 
 
 export class ProfileServiceImpl extends ProfileService {
@@ -14,7 +15,7 @@ export class ProfileServiceImpl extends ProfileService {
     constructor(
             @InjectRepository(ProfileModel)
             private readonly profileRepository: Repository<ProfileModel>,
-
+            private readonly embeddedProfileService: ProfileVectorService,
             private readonly peopleService: PeopleService
         ) {
             super();

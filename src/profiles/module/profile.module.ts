@@ -15,6 +15,7 @@ import { ProfileCvServiceImpl } from "../service/impl/profile.cv.impl.service";
 import { ProfileCvService } from "../service/contract/profile.cv.service";
 import { StorageModule } from "src/components/storage.media/module/storage.module";
 import { McpClientModule } from "src/mcp-client";
+import { AiModule } from "src/ai/module/ai.module";
 
 
 @Module({
@@ -22,6 +23,7 @@ import { McpClientModule } from "src/mcp-client";
     PeopleModule,
     McpClientModule,
     StorageModule,
+    AiModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

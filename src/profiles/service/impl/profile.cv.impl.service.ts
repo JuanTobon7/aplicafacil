@@ -128,17 +128,12 @@ export class ProfileCvServiceImpl
 
     const reduced =
       await interceptor.reduceFile(sanitized);
-    console.log("REDUCED TYPE:", typeof reduced);
-    console.log("REDUCED IS BUFFER:", Buffer.isBuffer(reduced));
+    
     const payload:FillCvRequest = {
       prompt: CV_SYSTEM_EXTRACT,
       system: "You are a system that extracts structured data from CVs.",
       data: reduced,
     };
-
-    console.log("MCP PAYLOAD:", payload);
-    console.log("MCP DATA TYPE:", typeof payload.data);
-    console.log("MCP DATA IS BUFFER:", Buffer.isBuffer(payload.data));
 
     const response : ProfileResponseDto = await this.mcp.getProfileDataFromCv(payload)
     return response;

@@ -9,6 +9,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { databaseConfig } from "./config/db.config";
 import { ProfileModule } from "./profiles/module/profile.module";
 import { AuthModule } from "./auth/module/user.module";
+import { AiModule } from "./ai/module/ai.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from "./auth/module/user.module";
     PeopleModule,
     ProfileModule,
     AuthModule,
+    AiModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
