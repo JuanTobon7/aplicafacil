@@ -16,9 +16,11 @@ export class FormScanner {
   private scanDebounceTimer?: number;
 
   private constructor() {
-    this.detectors.push(new UrlChangeDetector());
-    this.detectors.push(new DomChangeDetector());
-    this.detectors.push(new ModalOpenDetector());
+    this.detectors.push(
+      new UrlChangeDetector(),
+      new DomChangeDetector(),
+      new ModalOpenDetector()
+    );
   }
 
   static getInstance(): FormScanner {
@@ -64,7 +66,7 @@ export class FormScanner {
     try {
       const form = this.scanCurrentPage();
       
-      if (form && form.fields.length) {
+      if (form?.fields.length) {
         // Calcula hash simple para evitar duplicados
         const formHash = JSON.stringify({ 
           url: form.url, 

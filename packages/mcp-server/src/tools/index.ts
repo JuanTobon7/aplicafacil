@@ -1,8 +1,9 @@
-import { Axios } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { ClientBackend } from "../client/client.backend.js";
 import { ClientPeople } from "../client/client.people.js";
 import { ClientProfile } from "../client/client.profile.js";
 import { AiSearchProfileToolImpl } from "./impl/ai.search.profile.impl.js";
+import { httpInterceptor } from "../http/http-interceptor.js";
 
 export class ToolsBank {
     private readonly tools = new Map<string, any>();
@@ -30,15 +31,21 @@ export class ToolsBank {
 
 const toolsBank = new ToolsBank();
 
+// ── Backend HTTP client with interceptor ──────────────────────────────
+const backendAxios: AxiosInstance = axios.create({
+    baseURL: process.env.BACKEND_URL ?? "http://localhost:3000",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    timeout: 5000,
+});
+
+// Apply the HTTP interceptor to log all backend API calls
+httpInterceptor.applyTo(backendAxios, "Backend");
+
 const clientBackend = new ClientBackend(
     process.env.BACKEND_URL ?? "http://localhost:3000",
-    new Axios({
-        baseURL: process.env.BACKEND_URL ?? "http://localhost:3000",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        timeout: 5000,
-    })
+    backendAxios,
 );
 const clientProfile = new ClientProfile(clientBackend);
 const clientPeople = new ClientPeople(clientBackend);

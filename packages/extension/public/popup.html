@@ -2,16 +2,59 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <title>AutoApply</title>
   <style>
-    body { width: 300px; padding: 16px; font-family: sans-serif; }
-    button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    body {
+      width: 320px;
+      padding: 16px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: #0f172a;
+    }
+    h1 { font-size: 16px; margin: 0 0 12px; }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
     button:hover { background: #1d4ed8; }
-    #status { margin-top: 12px; font-size: 13px; color: #64748b; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    label.toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #64748b;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+    #status.error { color: #dc2626; }
+    #status.ok { color: #16a34a; }
+    .muted { color: #94a3b8; font-size: 12px; }
   </style>
 </head>
 <body>
-  <button id="scan">🔍 Escanear formulario</button>
-  <div id="status">Listo para escanear.</div>
+  <h1>⚡ AutoApply</h1>
+
+  <button id="scan">🔍 Escanear y autocompletar</button>
+
+  <label class="toggle" title="Al detectar un formulario de LinkedIn, se autocompleta automáticamente">
+    <input type="checkbox" id="autoApply" checked />
+    Autocompletar automáticamente en LinkedIn
+  </label>
+
+  <div id="status">Listo. Navega a una vacante y presiona el botón.</div>
+
   <script src="popup.js"></script>
 </body>
 </html>

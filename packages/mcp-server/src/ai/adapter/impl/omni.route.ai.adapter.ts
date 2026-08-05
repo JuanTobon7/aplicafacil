@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import OpenAI from "openai";
 import { AiProvider } from "../contract/ai.provider.js";
 import { logger } from "../../../logger/logger.js";
+import { httpInterceptor } from "../../../http/http-interceptor.js";
 
 @Injectable()
 export class OmniRouteAdapter implements AiProvider {
@@ -25,6 +26,8 @@ export class OmniRouteAdapter implements AiProvider {
         this.client = new OpenAI({
             apiKey: apiKey ?? "not-needed-if-no-auth-configured",
             baseURL,
+            // Wrap fetch to log all HTTP traffic to OmniRoute
+            fetch: httpInterceptor.createFetchWrapper("OmniRoute") as any,
         });
     }
 

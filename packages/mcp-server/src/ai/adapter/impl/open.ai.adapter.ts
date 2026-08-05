@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import OpenAI from "openai";
 import { AiProvider } from "../contract/ai.provider.js";
 import { logger } from "../../../logger/logger.js";
+import { httpInterceptor } from "../../../http/http-interceptor.js";
 
 @Injectable()
 export class OpenRouterAdapter implements AiProvider {
@@ -13,6 +14,8 @@ export class OpenRouterAdapter implements AiProvider {
         this.client = new OpenAI({
             apiKey: process.env.OPENROUTER_API_KEY!,
             baseURL: process.env.OPENROUTER_BASE_URL!,
+            // Wrap fetch to log all HTTP traffic to OpenRouter
+            fetch: httpInterceptor.createFetchWrapper("OpenRouter") as any,
         });
     }
 
