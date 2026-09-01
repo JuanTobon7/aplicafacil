@@ -66,6 +66,59 @@ export async function fillFormRoute(req: Request, res: Response) {
 }
 
 /**
+ * POST /tools/complete
+ * Completa una tarea genérica de IA (system + prompt) y devuelve la respuesta
+ * cruda del LLM, SIN asumir que es un array (a diferencia de /tools/fill-form).
+ * Útil para prompts que devuelven objetos JSON (p.ej. parámetros de búsqueda).
+ */
+export async function completeRoute(req: Request, res: Response) {
+  const requestId = `${Date.now()}-${Math.random()}`;
+  logger.debug(`[${requestId}] 📝 /tools/complete request started`, {
+    bodySize: JSON.stringify(req.body).length,
+  });
+
+  try {
+    const { system, prompt } = req.body;
+
+    if (!system || !prompt) {
+      logger.warn(`[${requestId}] Missing required fields`, {
+        hasSystem: !!system,
+        hasPrompt: !!prompt,
+      });
+      return res.status(400).json({
+        error: 'Missing required fields: system and prompt',
+      });
+    }
+
+    logger.debug(`[${requestId}] Creating OpenRouter adapter...`);
+    const aiProvider = new OpenRouterAdapter();
+
+    logger.debug(
+      `[${requestId}] Calling complete with prompt size: ${prompt.length}`
+    );
+    const result = await aiProvider.fillForm({ system, prompt });
+
+    logger.debug(
+      `[${requestId}] Received response, size: ${result.length} chars`
+    );
+
+    res.json({
+      content: [
+        {
+          type: 'text',
+          text: result,
+        },
+      ],
+    });
+  } catch (error) {
+    logger.error(`[${requestId}] Error in /tools/complete`, error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
  * POST /tools/embeddings
  * Obtiene embeddings de texto
  */

@@ -2,6 +2,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import {
   fillFormRoute,
+  completeRoute,
   embeddingsRoute,
   extractProfileFromCvRoute,
   searchProfileRoute,
@@ -42,6 +43,7 @@ export function createExpressApp(): Express {
 
   // Tools endpoints
   app.post('/tools/fill-form', fillFormRoute);
+  app.post('/tools/complete', completeRoute);
   app.post('/tools/embeddings', embeddingsRoute);
   app.get('/tools/search-profile', searchProfileRoute);
   app.post('/tools/search-people', searchPeopleRoute);

@@ -43,7 +43,7 @@ export class ModalOpenDetector implements IChangeDetector {
 
     // MutationObserver para detectar cuando aparecen nuevos elementos dialog/modal
     this.mutationObserver = new MutationObserver((mutations) => {
-      const dialogs = Array.from(document.querySelectorAll(
+      const dialogs = Array.from(document.querySelectorAll<HTMLElement>(
         '[data-testid="dialog-content"], [role="dialog"], .jobs-easy-apply-modal, .artdeco-modal'
       ));
 

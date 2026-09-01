@@ -48,9 +48,18 @@
 
   <button id="scan">🔍 Escanear y autocompletar</button>
 
+  <button id="autoApplyJobs" style="margin-top: 8px; background: #059669;">
+    🤖 Auto-aplicar vacantes pendientes
+  </button>
+
   <label class="toggle" title="Al detectar un formulario de LinkedIn, se autocompleta automáticamente">
     <input type="checkbox" id="autoApply" checked />
     Autocompletar automáticamente en LinkedIn
+  </label>
+
+  <label class="toggle" title="Permite que el servidor auto-aplique las vacantes que coinciden con tu perfil">
+    <input type="checkbox" id="autoApplyJobsToggle" checked />
+    Auto-aplicar vacantes recomendadas
   </label>
 
   <div id="status">Listo. Navega a una vacante y presiona el botón.</div>

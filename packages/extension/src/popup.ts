@@ -6,13 +6,17 @@ import { JobForm } from "./core/types/forms";
 //   1. Pide el formulario al content script (vía background)
 //   2. Envía el formulario a la API para obtener recomendaciones
 //   3. Aplica las recomendaciones en la pestaña activa
+// También permite disparar la auto-aplicación de vacantes pendientes.
 // ------------------------------------------------------------------
 
 const statusEl = document.getElementById("status")!;
 const scanBtn = document.getElementById("scan") as HTMLButtonElement;
 const autoApplyCheckbox = document.getElementById("autoApply") as HTMLInputElement;
+const autoApplyJobsBtn = document.getElementById("autoApplyJobs") as HTMLButtonElement;
+const autoApplyJobsToggle = document.getElementById("autoApplyJobsToggle") as HTMLInputElement;
 
 const AUTO_APPLY_KEY = "autoApplyEnabled";
+const AUTO_APPLY_JOBS_KEY = "autoApplyJobsEnabled";
 
 function setStatus(message: string, kind: "info" | "ok" | "error" = "info"): void {
   statusEl.textContent = message;
@@ -81,15 +85,40 @@ async function handleScan(): Promise<void> {
   }
 }
 
+async function handleAutoApplyJobs(): Promise<void> {
+  autoApplyJobsBtn.disabled = true;
+  setStatus("Consultando vacantes pendientes…");
+
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "AUTO_APPLY_JOBS" });
+    if (response?.success) {
+      setStatus("✅ Auto-aplicación de vacantes iniciada.\nRevisa las pestañas que se abren.", "ok");
+    } else {
+      setStatus("❌ No se pudo iniciar la auto-aplicación.", "error");
+    }
+  } catch (error) {
+    console.error("[Popup] Error en auto-aplicación:", error);
+    setStatus(`❌ ${error instanceof Error ? error.message : "Error desconocido"}`, "error");
+  } finally {
+    autoApplyJobsBtn.disabled = false;
+  }
+}
+
 async function init(): Promise<void> {
   scanBtn.addEventListener("click", handleScan);
+  autoApplyJobsBtn.addEventListener("click", handleAutoApplyJobs);
 
-  // Persistir el toggle de autocompletado automático
-  const stored = await chrome.storage.local.get(AUTO_APPLY_KEY);
+  // Persistir los toggles
+  const stored = await chrome.storage.local.get([AUTO_APPLY_KEY, AUTO_APPLY_JOBS_KEY]);
   autoApplyCheckbox.checked = stored[AUTO_APPLY_KEY] !== false; // default true
+  autoApplyJobsToggle.checked = stored[AUTO_APPLY_JOBS_KEY] !== false; // default true
 
   autoApplyCheckbox.addEventListener("change", () => {
     chrome.storage.local.set({ [AUTO_APPLY_KEY]: autoApplyCheckbox.checked });
+  });
+
+  autoApplyJobsToggle.addEventListener("change", () => {
+    chrome.storage.local.set({ [AUTO_APPLY_JOBS_KEY]: autoApplyJobsToggle.checked });
   });
 }
 
