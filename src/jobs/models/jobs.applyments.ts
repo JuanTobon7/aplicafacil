@@ -13,6 +13,7 @@ export class StatusApplyment {
   public static readonly PENDING = 'PENDING';
   public static readonly NONE = 'NONE';
   public static readonly ERROR = 'ERROR';
+  public static readonly CANNOT = 'CANNOT';
 }
 
 @Entity('jobs_applyments')
@@ -21,7 +22,8 @@ export class JobsApplymentsModel {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'enum', enum: [StatusApplyment.DONE, StatusApplyment.PENDING, StatusApplyment.NONE, StatusApplyment.ERROR], default: StatusApplyment.NONE })
+  @Column({ type: 'enum', enum: [StatusApplyment.DONE, StatusApplyment.PENDING, 
+    StatusApplyment.NONE, StatusApplyment.ERROR, StatusApplyment.CANNOT], default: StatusApplyment.NONE })
   status!: StatusApplyment;
 
   @Column({ nullable: false })

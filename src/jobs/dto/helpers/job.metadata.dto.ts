@@ -4,7 +4,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { SkillsMatchDto } from './SkillMatchDto';
+import { SkillsMatchDto } from './skill.match.dto';
  
 export class JobMetadataDto {
   @IsString()

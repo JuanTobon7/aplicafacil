@@ -1,4 +1,4 @@
-import { JobPostingDto } from "src/jobs/dto/req/JobPostingDto";
+import { JobPostingDto } from "src/jobs/dto/req/job..osting.dto";
 import { LinkedInSearchParams } from "src/linkedin-automation/dto/params.lindkln.search";
 
 export abstract class ScrapingLinkldnService {

@@ -1,4 +1,4 @@
-import { JobPostingDto } from '../dto/req/JobPostingDto';
+import { JobPostingDto } from '../dto/req/job..osting.dto';
 import { JobsApplymentsModel } from '../models/jobs.applyments';
 import { JobSourceMapper } from './job-source.mapper';
 import { RequirementsMapper } from './requirements.mapper';

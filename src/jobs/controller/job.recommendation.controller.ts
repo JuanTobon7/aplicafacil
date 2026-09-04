@@ -1,6 +1,6 @@
 import { Body, Controller, Post, Res } from "@nestjs/common";
-import { FillFormRequestDto } from "../dto/req/FillFormRequestDto";
-import { JobRecommendationService } from "../service/contract/JobRecommendaion.service";
+import { FillFormRequestDto } from "../dto/req/fill.form.request.dto";
+import { JobRecommendationService } from "../service/contract/job.recommendation.service";
 
 @Controller('/recommendations')
 export class JobRecommendationController {

@@ -6,13 +6,13 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { CompanyDto } from '../helpers/CompanyDto';
-import { CompensationDto } from '../helpers/CompensationDto';
-import { JobExtraInfoDto } from '../helpers/JobExtraInfoDto';
-import { JobMetadataDto } from '../helpers/JobMetadataDto';
-import { JobSourceDto } from '../helpers/JobSourceDto';
-import { LocationDto } from '../helpers/LocationDto';
-import { RequirementsDto } from '../helpers/RequerimentsDto';
+import { CompanyDto } from '../helpers/company.dto';
+import { CompensationDto } from '../helpers/compensation.dto';
+import { JobExtraInfoDto } from '../helpers/job.extrainfo.dto';
+import { JobMetadataDto } from '../helpers/job.metadata.dto';
+import { JobSourceDto } from '../helpers/job.source.dto';
+import { LocationDto } from '../helpers/location.dto';
+import { RequirementsDto } from '../helpers/requeriments.dto';
 
 export class JobPostingDto {
 

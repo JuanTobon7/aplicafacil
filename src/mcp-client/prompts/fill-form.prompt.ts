@@ -1,4 +1,4 @@
-import { FillFormRequestDto } from '../../jobs/dto/req/FillFormRequestDto';
+import { FillFormRequestDto } from '../../jobs/dto/req/fill.form.request.dto';
 
 export const FILL_FORM_SYSTEM = `
 Eres un asistente experto en completar formularios de aplicación laboral.

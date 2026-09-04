@@ -1,4 +1,4 @@
-import { RequirementsDto } from '../dto/helpers/RequerimentsDto';
+import { RequirementsDto } from '../dto/helpers/requeriments.dto';
 import { RequirementsModel } from '../models/requirements.model';
 
 export class RequirementsMapper {

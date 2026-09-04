@@ -5,8 +5,8 @@ import {
   IsUrl,
   ValidateNested,
 } from 'class-validator';
-import { JobMetadataDto } from '../helpers/JobMetadataDto';
-import { FieldDto } from '../helpers/FieldDto';
+import { JobMetadataDto } from '../helpers/job.metadata.dto';
+import { FieldDto } from '../helpers/field.dto';
 export class FillFormRequestDto {
  
   @IsUrl()

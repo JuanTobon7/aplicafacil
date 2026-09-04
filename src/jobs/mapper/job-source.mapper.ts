@@ -1,4 +1,4 @@
-import { JobSourceDto } from '../dto/helpers/JobSourceDto';
+import { JobSourceDto } from '../dto/helpers/job.source.dto';
 import { JobSourceModel } from '../models/job-source.model';
 
 export class JobSourceMapper {

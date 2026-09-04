@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'node:crypto';
-import { FillFormRequestDto } from '../../dto/req/FillFormRequestDto';
-import { FieldDto } from '../../dto/helpers/FieldDto';
-import { JobRecommendationService } from '../contract/JobRecommendaion.service';
+import { FillFormRequestDto } from '../../dto/req/fill.form.request.dto';
+import { FieldDto } from '../../dto/helpers/field.dto';
+import { JobRecommendationService } from '../contract/job.recommendation.service';
 import { McpClientService } from '../../../mcp-client/mcp-client.service';
 import { FILL_FORM_SYSTEM, buildFillFormPrompt } from '../../../mcp-client/prompts/fill-form.prompt';
 import { RedisService } from '../../../common/redis/redis.service';

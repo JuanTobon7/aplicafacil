@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ScrapingLinkldnService } from "../service/contract/scraping.linkldn.service";
-import { JobPostingDto } from "src/jobs/dto/req/JobPostingDto";
+import { JobPostingDto } from "src/jobs/dto/req/job..osting.dto";
 import { LinkedInSearchParams } from "../dto/params.lindkln.search";
 import { ValidateJobsService } from "../../jobs/service/contract/validate.jobs";
 import { JobsService } from "src/jobs/service/contract/jobs.service";
@@ -25,7 +25,7 @@ export class JobWorkerAutomation {
     ) {
         this.params = new LinkedInSearchParams(
             '1_week', 
-            'Brazil', 
+            'Colombia', 
             true,
         );
     }
@@ -64,8 +64,6 @@ export class JobWorkerAutomation {
         }
 
         this.logger.log(`Found ${getPendingJobs.length} pending jobs to apply for.`);
-
-
     }
 
     getCredentialsLinkdln(): {email: string, password: string} {
@@ -88,6 +86,7 @@ export class JobWorkerAutomation {
 
     sendApplicationToQueu(jobs: JobsApplymentsModel[]): Promise<void> {
         // Implementation for applying to a specific job
+
 
 
         return Promise.resolve();

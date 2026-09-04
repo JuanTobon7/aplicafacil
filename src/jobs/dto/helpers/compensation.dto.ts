@@ -1,5 +1,5 @@
 import { IsNumber, IsOptional, IsString } from "class-validator";
-import { SalaryPeriod } from "src/jobs/enum/SalaryPeriod";
+import { SalaryPeriod } from "src/jobs/enum/salary.period";
 
 export class CompensationDto   {
   @IsOptional()

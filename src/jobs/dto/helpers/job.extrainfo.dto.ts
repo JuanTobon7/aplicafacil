@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
-import { EmploymentType } from "src/jobs/enum/EmploymentType";
-import { WorkplaceType } from "src/jobs/enum/WorkplaceType";
+import { EmploymentType } from "src/jobs/enum/employment.yype";
+import { WorkplaceType } from "src/jobs/enum/workplace.type";
 
 export class JobExtraInfoDto  {
   @IsString()

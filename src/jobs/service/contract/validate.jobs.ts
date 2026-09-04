@@ -1,4 +1,4 @@
-import { JobPostingDto } from "src/jobs/dto/req/JobPostingDto";
+import { JobPostingDto } from "src/jobs/dto/req/job..osting.dto";
 import { JobsService } from "./jobs.service";
 
 export abstract class ValidateJobsService {

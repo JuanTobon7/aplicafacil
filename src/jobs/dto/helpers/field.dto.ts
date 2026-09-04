@@ -6,7 +6,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { FieldOptionDto } from './FieldOptionDto';
+import { FieldOptionDto } from './field.option.dto';
  
 export class FieldDto {
   @IsString()
