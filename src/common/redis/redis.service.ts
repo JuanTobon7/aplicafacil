@@ -19,7 +19,7 @@ export class RedisService implements OnModuleDestroy {
     try {
       this.client = new Redis({
         host: this.configService.get<string>('REDIS_HOST') ?? 'localhost',
-        port: Number(this.configService.get<string>('REDIS_PORT')) ?? 6379,
+        port: Number(this.configService.get<string>('REDIS_PORT') ?? 6379),
         password: this.configService.get<string>('REDIS_PASSWORD') ?? undefined,
         // Falla rápido en vez de encolar comandos cuando Redis está caído
         enableOfflineQueue: false,
@@ -36,7 +36,9 @@ export class RedisService implements OnModuleDestroy {
       });
       this.client.on('error', (err) => {
         this.connected = false;
-        this.logger.warn(`Redis no disponible (${err.message}). La caché de e-tags se omite.`);
+        this.logger.warn(
+          `Redis no disponible (${err.message}). La caché de e-tags se omite.`,
+        );
       });
     } catch (err) {
       this.logger.warn(
@@ -69,6 +71,33 @@ export class RedisService implements OnModuleDestroy {
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
     await this.run((client) => client.set(key, value, 'EX', ttlSeconds));
+  }
+
+  /**
+   * Lock atómico con SET NX EX.
+   * Devuelve true si se adquirió el lock, false si ya estaba tomado.
+   * Si Redis no está disponible, devuelve true (degradación silenciosa:
+   * mejor permitir la ejecución que bloquear el sistema).
+   */
+  async acquireLock(key: string, ttlSeconds: number): Promise<boolean> {
+    if (!this.client) return true;
+    try {
+      const result = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
+      return result === 'OK';
+    } catch (err) {
+      this.connected = false;
+      this.logger.warn(
+        `Lock Redis fallido (${err instanceof Error ? err.message : String(err)}). Se permite la ejecución.`,
+      );
+      return true;
+    }
+  }
+
+  /**
+   * Libera un lock adquirido previamente.
+   */
+  async releaseLock(key: string): Promise<void> {
+    await this.run((client) => client.del(key));
   }
 
   // ------------------------------------------------------------------

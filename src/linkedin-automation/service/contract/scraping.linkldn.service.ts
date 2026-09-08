@@ -15,4 +15,9 @@ export abstract class ScrapingLinkldnService {
     abstract searchJob(url: string): Promise<JobPostingDto | null>;
     abstract resolveFillFormAndApply(job: JobPostingDto): Promise<void>;
 
+    /**
+     * Cierra el navegador Puppeteer.
+     */
+    abstract close(): Promise<void>;
+
 }

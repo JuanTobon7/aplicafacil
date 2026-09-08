@@ -1,22 +1,21 @@
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { ProfileModel } from "../models/profiles.model";
-import { ProfileController } from "../controller/profile.controller";
-import { ProfileService } from "../service/contract/profile.service";
-import { ProfileServiceImpl } from "../service/impl/profile.impl.service";
-import { SkillsModel } from "../models/skills.model";
-import { ExperiencesModel } from "../models/experiences.model";
-import { EducationModel } from "../models/education.model";
-import { ProjectModel } from "../models/projects.model";
-import { PeopleModule } from "src/people/module/people.module";
-import { CvsModel } from "../models/cvs.model";
-import { ProfileCvServiceImpl } from "../service/impl/profile.cv.impl.service";
-import { ProfileCvService } from "../service/contract/profile.cv.service";
-import { StorageModule } from "src/components/storage.media/module/storage.module";
-import { McpClientModule } from "src/mcp-client";
-import { AiModule } from "src/ai/module/ai.module";
-
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProfileModel } from '../models/profiles.model';
+import { ProfileController } from '../controller/profile.controller';
+import { ProfileService } from '../service/contract/profile.service';
+import { ProfileServiceImpl } from '../service/impl/profile.impl.service';
+import { SkillsModel } from '../models/skills.model';
+import { ExperiencesModel } from '../models/experiences.model';
+import { EducationModel } from '../models/education.model';
+import { ProjectModel } from '../models/projects.model';
+import { PeopleModule } from 'src/people/module/people.module';
+import { CvsModel } from '../models/cvs.model';
+import { ProfileCvServiceImpl } from '../service/impl/profile.cv.impl.service';
+import { ProfileCvService } from '../service/contract/profile.cv.service';
+import { StorageModule } from 'src/components/storage.media/module/storage.module';
+import { McpClientModule } from 'src/mcp-client';
+import { AiModule } from 'src/ai/module/ai.module';
 
 @Module({
   imports: [
@@ -33,7 +32,7 @@ import { AiModule } from "src/ai/module/ai.module";
       ExperiencesModel,
       EducationModel,
       CvsModel,
-      ProjectModel
+      ProjectModel,
     ]),
   ],
   controllers: [ProfileController],
@@ -47,5 +46,6 @@ import { AiModule } from "src/ai/module/ai.module";
       useClass: ProfileCvServiceImpl,
     },
   ],
+  exports: [ProfileService],
 })
 export class ProfileModule {}

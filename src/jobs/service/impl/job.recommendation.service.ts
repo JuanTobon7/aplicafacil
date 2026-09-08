@@ -5,19 +5,22 @@ import { FillFormRequestDto } from '../../dto/req/fill.form.request.dto';
 import { FieldDto } from '../../dto/helpers/field.dto';
 import { JobRecommendationService } from '../contract/job.recommendation.service';
 import { McpClientService } from '../../../mcp-client/mcp-client.service';
-import { FILL_FORM_SYSTEM, buildFillFormPrompt } from '../../../mcp-client/prompts/fill-form.prompt';
+import {
+  FILL_FORM_SYSTEM,
+  buildFillFormPrompt,
+} from '../../../mcp-client/prompts/fill-form.prompt';
 import { RedisService } from '../../../common/redis/redis.service';
 
 export interface FieldResult {
-  fieldName:       string;    // coincide con field.name del DOM
-  value:           string | null;
-  confidence:      number;
+  fieldName: string; // coincide con field.name del DOM
+  value: string | null;
+  confidence: number;
   requires_review: boolean;
 }
 
 export interface FillFormResponse {
-  status:   'ok' | 'partial' | 'error';
-  fields:   FieldResult[];
+  status: 'ok' | 'partial' | 'error';
+  fields: FieldResult[];
   warnings: string[];
 }
 
@@ -36,10 +39,15 @@ export class JobRecommendationServiceImpl implements JobRecommendationService {
 
   async fillFormFields(body: FillFormRequestDto): Promise<FillFormResponse> {
     if (!body.fields?.length) {
-      return { status: 'ok', fields: [], warnings: ['No se recibieron campos'] };
+      return {
+        status: 'ok',
+        fields: [],
+        warnings: ['No se recibieron campos'],
+      };
     }
 
-    const ttl = Number(this.configService.get<string>('REDIS_ETAG_TTL')) || 3600;
+    const ttl =
+      Number(this.configService.get<string>('REDIS_ETAG_TTL')) || 3600;
 
     try {
       // 1) E-tag por cada input: firma estable del campo (label, name, type, options…)
@@ -60,7 +68,9 @@ export class JobRecommendationServiceImpl implements JobRecommendationService {
             cachedByField.set(field.name, JSON.parse(raw) as FieldResult);
             return;
           } catch {
-            this.logger.warn(`E-tag corrupto para "${field.name}", se re-analiza`);
+            this.logger.warn(
+              `E-tag corrupto para "${field.name}", se re-analiza`,
+            );
           }
         }
         missingFields.push(field);
@@ -69,14 +79,23 @@ export class JobRecommendationServiceImpl implements JobRecommendationService {
 
       // 3) Solo si hay campos nuevos/cambiados se invoca al LLM
       if (missingFields.length > 0) {
-        const results = await this.analyzeWithLlm({ ...body, fields: missingFields });
+        const results = await this.analyzeWithLlm({
+          ...body,
+          fields: missingFields,
+        });
 
         // 4) Guarda en Redis el e-tag de cada input analizado (TTL = sesión abierta)
         for (const result of results) {
-          const index = missingFields.findIndex((f) => f.name === result.fieldName);
+          const index = missingFields.findIndex(
+            (f) => f.name === result.fieldName,
+          );
           if (index >= 0) {
             cachedByField.set(result.fieldName, result);
-            await this.redis.set(missingKeys[index], JSON.stringify(result), ttl);
+            await this.redis.set(
+              missingKeys[index],
+              JSON.stringify(result),
+              ttl,
+            );
           }
         }
       } else {
@@ -116,7 +135,9 @@ export class JobRecommendationServiceImpl implements JobRecommendationService {
     }
   }
 
-  private async analyzeWithLlm(body: FillFormRequestDto): Promise<FieldResult[]> {
+  private async analyzeWithLlm(
+    body: FillFormRequestDto,
+  ): Promise<FieldResult[]> {
     const userPrompt = buildFillFormPrompt(body);
 
     this.logger.debug(
