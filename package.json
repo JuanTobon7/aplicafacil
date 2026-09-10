@@ -10,11 +10,20 @@
     "url": "git+https://github.com/JuanTobon7/aplicafacil.git"
   },
   "workspaces": [
-  "packages/*"
+    "packages/*"
   ],
   "scripts": {
     "dev:server": "npm --filter server start:dev",
     "build:server": "npm --filter server build",
-    "dev:extension": "npm --filter extension dev"
+    "dev:front": "npm --workspace aplicafacil-front run dev",
+    "build:front": "npm --workspace aplicafacil-front run build",
+    "dev:extension": "npm --filter extension dev",
+    "dev:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1",
+    "dev:all:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 stop",
+    "dev:all:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 status",
+    "dev:all:logs": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 logs"
+  },
+  "dependencies": {
+    "@nestjs/schedule": "^12.0.1"
   }
 }

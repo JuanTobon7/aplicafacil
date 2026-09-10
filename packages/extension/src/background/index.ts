@@ -1,16 +1,45 @@
+import { postRecommendations } from "../api/recommendations";
+import { getJobsToApply, updateJobStatus, JobToApply } from "../api/jobs";
+import { JobForm } from "../core/types/forms";
+
+// Sitios donde el autocompletado automático está habilitado por defecto
+const AUTO_FILL_HOSTS = ["linkedin.com"];
+const AUTO_APPLY_KEY = "autoApplyEnabled";
+const AUTO_APPLY_JOBS_KEY = "autoApplyJobsEnabled";
+
 chrome.runtime.onMessage.addListener(
     async (message, sender, sendResponse) => {
 
-        console.log("[Background]",message);
-        
+        console.log("[Background]", message);
+
         if (message.type === "FORM_DETECTED") {
-        console.log("Formulario detectado automáticamente");
-        console.log("metadata:", message.form.metadata);
-        console.log("fields count:", message.form.fields.length);
-        return;
+            console.log("Formulario detectado automáticamente");
+            console.log("metadata:", message.form?.metadata);
+            console.log("fields count:", message.form?.fields?.length ?? 0);
+
+            // Autocompletado automático (solo en sitios conocidos y si está activado)
+            if (message.form?.fields?.length &&
+                sender.tab?.url && AUTO_FILL_HOSTS.some(h => sender.tab!.url!.includes(h))) {
+                const stored = await chrome.storage.local.get(AUTO_APPLY_KEY);
+                const enabled = stored[AUTO_APPLY_KEY] !== false; // default true
+
+                if (enabled) {
+                    // IMPORTANTE: se espera (await) para que el service worker de MV3
+                    // no se apague a mitad de la petición HTTP al servidor.
+                    await autoApply(message.form, sender.tab.id!);
+                }
+            }
+            return;
         }
 
-        if (message.type !== "READ_ACTIVE_FORM")return;
+        // Disparo manual de la auto-aplicación de vacantes pendientes
+        if (message.type === "AUTO_APPLY_JOBS") {
+            await autoApplyJobs();
+            sendResponse({ success: true });
+            return true;
+        }
+
+        if (message.type !== "READ_ACTIVE_FORM") return;
 
         const [tab] = await chrome.tabs.query({
                 active: true,
@@ -50,3 +79,112 @@ chrome.runtime.onMessage.addListener(
         return true;
     }
 );
+
+// ------------------------------------------------------------------
+// Obtiene recomendaciones del servidor y las aplica en la pestaña.
+// Es "fire and forget": los errores se loguean sin romper el listener.
+// ------------------------------------------------------------------
+async function autoApply(form: JobForm, tabId: number): Promise<void> {
+    try {
+        if (!form?.fields?.length) return;
+
+        const recommendations = await postRecommendations(form);
+
+        if (!recommendations.length) {
+            console.log("[Background] Sin recomendaciones para aplicar");
+            return;
+        }
+
+        console.log(`[Background] Aplicando ${recommendations.length} recomendaciones en tab ${tabId}`);
+        await chrome.tabs.sendMessage(tabId, {
+            type: "APPLY_RECOMMENDATIONS",
+            recommendations,
+        });
+    } catch (error) {
+        console.error("[Background] Error en autocompletado automático:", error);
+    }
+}
+
+// ------------------------------------------------------------------
+// Auto-aplicación de vacantes pendientes (MATCHED) en LinkedIn.
+// Consulta el servidor, abre cada vacante y espera a que el flujo de
+// autocompletado la aplique. Luego notifica el resultado al servidor.
+// ------------------------------------------------------------------
+async function autoApplyJobs(): Promise<void> {
+    try {
+        const stored = await chrome.storage.local.get(AUTO_APPLY_JOBS_KEY);
+        const enabled = stored[AUTO_APPLY_JOBS_KEY] !== false; // default true
+        if (!enabled) {
+            console.log("[Background] Auto-aplicación de vacantes desactivada");
+            return;
+        }
+
+        const jobs = await getJobsToApply();
+        if (!jobs.length) {
+            console.log("[Background] No hay vacantes pendientes de aplicar");
+            return;
+        }
+
+        console.log(`[Background] Procesando ${jobs.length} vacantes para auto-aplicar`);
+
+        for (const job of jobs) {
+            await processJobApplication(job);
+        }
+    } catch (error) {
+        console.error("[Background] Error en auto-aplicación de vacantes:", error);
+    }
+}
+
+async function processJobApplication(job: JobToApply): Promise<void> {
+    if (!job.url) {
+        console.log(`[Background] Vacante ${job.id} sin URL, se omite`);
+        await updateJobStatus(job.id, "APPLICATION_FAILED", undefined, "Sin URL de vacante");
+        return;
+    }
+
+    try {
+        // Marcar como en proceso de aplicación
+        await updateJobStatus(job.id, "APPLYING", undefined, "Iniciando auto-aplicación");
+
+        // Abrir la vacante en una pestaña nueva
+        const tab = await chrome.tabs.create({ url: job.url, active: false });
+
+        // Esperar a que la página cargue y el content script esté listo
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        // Enviar el mensaje de auto-aplicación paso a paso al content script
+        let result;
+        try {
+            result = await chrome.tabs.sendMessage(tab.id!, { type: "AUTO_APPLY_JOB" });
+        } catch (e) {
+            console.error(`[Background] Content script no disponible en tab ${tab.id}:`, e);
+            result = { success: false, message: "Content script no disponible" };
+        }
+
+        console.log(`[Background] Resultado de auto-aplicación para ${job.id}:`, result);
+
+        if (result?.success) {
+            await updateJobStatus(
+                job.id,
+                "APPLIED",
+                { url: job.url, stepsCompleted: result.stepsCompleted },
+                result.message || "Auto-aplicación completada"
+            );
+        } else {
+            await updateJobStatus(
+                job.id,
+                "APPLICATION_FAILED",
+                { url: job.url },
+                result?.message || "No se pudo completar la auto-aplicación"
+            );
+        }
+
+        // Cerrar la pestaña
+        if (tab.id) {
+            await chrome.tabs.remove(tab.id);
+        }
+    } catch (error) {
+        console.error(`[Background] Error aplicando vacante ${job.id}:`, error);
+        await updateJobStatus(job.id, "APPLICATION_FAILED", undefined, error instanceof Error ? error.message : "Error desconocido");
+    }
+}

@@ -1,0 +1,415 @@
+/* ============================================
+   Archivo: styles.css (corregido)
+   Usa Tailwind CSS 4 (con @apply)
+   ============================================ */
+
+/* 1. Importar Tailwind */
+@import "tailwindcss";
+
+/* 2. Definir colores y valores personalizados (opcional) */
+@theme {
+  --color-brand-dark: #182026;
+  --color-brand-bg: #eef3f1;
+  --color-teal-600: #25636b;
+  --color-teal-700: #1e4f56;
+  --color-gray-soft: #d9e2df;
+  --color-gray-border: #cfdad7;
+  --color-gray-light: #edf3f1;
+  --color-text-primary: #14252b;
+  --color-text-secondary: #405056;
+  --color-text-muted: #617074;
+  --color-success-bg: #e1f4ea;
+  --color-success-text: #17523e;
+  --color-error-bg: #fae2e4;
+  --color-error-text: #7d1f28;
+  --color-info-bg: #e4edf8;
+  --color-info-text: #24466a;
+}
+
+/* 3. Estilos base (aplicados al :root y body) */
+@layer base {
+  :root {
+    @apply text-[#182026] bg-[#eef3f1] font-sans;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply m-0 min-w-[320px] min-h-screen;
+  }
+
+  button,
+  input,
+  textarea {
+    @apply font-[inherit]; /* antes font-inherit */
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  button:disabled {
+    @apply cursor-not-allowed opacity-[0.58]; /* antes opacity-58 */
+  }
+}
+
+/* 4. Componentes principales */
+@layer components {
+  
+  .app-shell {
+    @apply min-h-screen p-7;
+    background:
+      linear-gradient(135deg, rgba(238, 243, 241, 0.86), rgba(230, 237, 242, 0.92)),
+      #eef3f1;
+  }
+
+  .workspace {
+    @apply grid grid-cols-[minmax(280px,360px)_1fr] gap-6 max-w-[1380px] mx-auto items-start;
+  }
+
+  .profile-panel {
+    @apply bg-white/90 border border-[#d9e2df] rounded-lg shadow-[0_24px_60px_rgba(33,45,52,0.08)];
+  }
+
+  .profile-panel {
+    @apply p-[26px];
+  }
+
+  .brand-block,
+  .panel-header,
+  .collection-header,
+  .action-row,
+  .cv-band {
+    @apply flex items-center;
+  }
+
+  .brand-block {
+    @apply gap-3 mb-[22px];
+  }
+
+  .brand-mark {
+    @apply grid place-items-center w-11 h-11 text-white bg-[#25636b] rounded-lg;
+  }
+
+  .eyebrow {
+    @apply m-0 mb-1 text-[#617074] text-[0.76rem] font-bold uppercase tracking-normal;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply m-0 text-[#14252b] tracking-normal;
+  }
+
+  h1 {
+    @apply text-[1.55rem];
+  }
+
+  h2 {
+    @apply text-[1.45rem];
+  }
+
+  h3 {
+    @apply text-base;
+  }
+
+  .mode-switch {
+    @apply grid grid-cols-2 gap-1.5 p-1.5 mb-[18px] bg-[#edf3f1] rounded-lg;
+  }
+
+  .mode-switch button,
+  .icon-text-button,
+  .primary-action,
+  .secondary-action,
+  .file-picker {
+    @apply inline-flex items-center justify-center gap-2 border-0 rounded-lg font-bold;
+  }
+
+  .mode-switch button {
+    @apply min-h-[38px] text-[#526369] bg-transparent;
+  }
+
+  .mode-switch .active {
+    @apply text-white bg-[#25636b];
+  }
+
+  .form-grid {
+    @apply grid grid-cols-2 gap-3.5;
+  }
+
+  .compact {
+    @apply gap-3;
+  }
+
+  label {
+    @apply grid gap-1.5 text-[#405056] text-[0.86rem] font-bold;
+  }
+
+  input,
+  textarea {
+    @apply w-full min-h-[42px] text-[#182026] bg-white border border-[#cfdad7] rounded-lg outline-none px-3 py-2.5;
+  }
+
+  textarea {
+    @apply resize-y leading-[1.45];
+  }
+
+  input:focus,
+  textarea:focus {
+    @apply border-[#25636b] shadow-[0_0_0_3px_rgba(37,99,107,0.14)];
+  }
+
+  .span-all,
+  .span-two {
+    @apply col-span-full;
+  }
+
+  .primary-action {
+    @apply min-h-[44px] px-[18px] text-white bg-[#25636b];
+  }
+
+  .secondary-action,
+  .icon-text-button {
+    @apply min-h-[40px] px-3.5 text-[#25636b] bg-[#e4efed];
+  }
+
+  .panel-header {
+    @apply justify-between gap-[18px] pb-[22px] border-b border-[#dde6e3];
+  }
+
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 min-h-[34px] px-3 text-[#17523e] bg-[#e1f4ea] rounded-full font-extrabold whitespace-nowrap;
+  }
+
+  .profile-form {
+    @apply grid gap-[18px] pt-[22px];
+  }
+
+  .collection-header {
+    @apply justify-between gap-4 mt-0.5;
+  }
+
+  .collection-header > div {
+    @apply inline-flex items-center gap-2 text-[#25636b];
+  }
+
+  .entry-row {
+    @apply relative grid gap-3 p-3.5 pr-14 bg-[#f7faf9] border border-[#dbe5e2] rounded-lg;
+  }
+
+  .skill-row {
+    @apply grid-cols-[minmax(130px,1.1fr)_minmax(110px,0.6fr)_minmax(180px,1.3fr)];
+  }
+
+  .two-column {
+    @apply grid-cols-2;
+  }
+
+  .icon-button {
+    @apply absolute top-3.5 right-3.5 grid w-8 h-8 place-items-center text-[#7d1f28] bg-[#fae2e4] border-0 rounded-lg;
+  }
+
+  .action-row {
+    @apply justify-end pt-1;
+  }
+
+  .cv-band {
+    @apply justify-between gap-3.5 mt-6 pt-[22px] border-t border-[#dde6e3];
+  }
+
+  .file-picker {
+    @apply relative min-h-[42px] max-w-[300px] px-3.5 text-[#405056] bg-white border border-dashed border-[#aabbb8] overflow-hidden;
+  }
+
+  .file-picker input {
+    @apply absolute inset-0 opacity-0;
+  }
+
+  .file-picker span {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+}
+
+/* 5. Estilos responsivos (media queries) */
+@layer utilities {
+  @media (max-width: 980px) {
+    .workspace {
+      @apply grid-cols-1;
+    }
+
+  }
+
+  @media (max-width: 720px) {
+    .app-shell {
+      @apply p-3.5;
+    }
+
+    
+    .profile-panel {
+      @apply p-[18px];
+    }
+
+    .form-grid,
+    .skill-row,
+    .two-column {
+      @apply grid-cols-1;
+    }
+
+    .entry-row {
+      @apply pr-3.5 pb-[58px];
+    }
+
+    .icon-button {
+      @apply top-auto bottom-3.5;
+    }
+
+    .panel-header,
+    .cv-band {
+      @apply items-start flex-col;
+    }
+
+    .action-row,
+    .primary-action,
+    .secondary-action,
+    .file-picker {
+      @apply w-full;
+    }
+  }
+  @layer components {
+  .nav-bar {
+    @apply sticky top-0 z-10 flex items-center justify-between
+           px-4 py-2.5 gap-2
+           sm:px-6 sm:py-3
+           bg-white/90 backdrop-blur
+           border-b border-[#d9e2df];
+  }
+
+  .nav-bar-actions {
+    @apply flex items-center gap-2 sm:gap-3;
+  }
+
+  .nav-user-chip {
+    @apply inline-flex items-center gap-2
+           px-2.5 py-1.5 sm:px-3 sm:py-2
+           rounded-full
+           text-sm font-medium text-[#3f4a4d]
+           border border-transparent
+           hover:bg-[#eef2f1] transition-colors duration-150;
+  }
+
+  .nav-user-chip.active {
+    @apply border-[#2f6f5e]/40 bg-[#eef7f4] text-[#1f4f42];
+  }
+
+  .nav-avatar {
+    @apply flex items-center justify-center
+           w-7 h-7 rounded-full shrink-0
+           bg-[#2f6f5e] text-white
+           text-xs font-semibold uppercase;
+  }
+
+  .nav-user-name {
+    @apply hidden sm:inline text-sm font-medium
+           max-w-[9rem] truncate;
+  }
+  }
+  @layer components {
+  /* Contenedor de la vista /auth */
+  .auth-shell {
+    @apply min-h-screen flex items-center justify-center p-7;
+    background:
+      linear-gradient(135deg, rgba(238, 243, 241, 0.86), rgba(230, 237, 242, 0.92)),
+      #eef3f1;
+  }
+
+  /* El panel en sí */
+  .account-panel {
+    @apply static bg-white/90 border border-[#d9e2df] rounded-lg
+           shadow-[0_24px_60px_rgba(33,45,52,0.08)]
+           p-[22px] w-full max-w-[420px];
+  }
+
+  @media (max-width: 720px) {
+    .auth-shell {
+      @apply p-3.5;
+    }
+
+    .account-panel {
+      @apply p-[18px];
+    }
+  }
+}
+@theme {
+  --animate-toast-in: toast-in 0.25s ease-out;
+  --animate-toast-out: toast-out 0.2s ease-in forwards;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes toast-out {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
+}
+
+@layer components {
+  .toast-viewport {
+    @apply fixed top-4 right-4 z-50
+           flex flex-col gap-2
+           w-full max-w-sm
+           pointer-events-none;
+  }
+
+  .toast {
+    @apply pointer-events-auto
+           flex items-start justify-between gap-3
+           p-3 rounded-lg text-[0.9rem] leading-[1.35]
+           border border-black/5
+           shadow-[0_12px_32px_rgba(33,45,52,0.18)]
+           animate-toast-in;
+  }
+
+  .toast.success {
+    @apply text-[#17523e] bg-[#e1f4ea];
+  }
+
+  .toast.error {
+    @apply text-[#7d1f28] bg-[#fae2e4];
+  }
+
+  .toast.info {
+    @apply text-[#24466a] bg-[#e4edf8];
+  }
+
+  .toast.leaving {
+    @apply animate-toast-out;
+  }
+
+  .toast-close {
+    @apply shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-150 cursor-pointer;
+  }
+
+  @media (max-width: 640px) {
+    .toast-viewport {
+      @apply top-3 right-3 left-3 max-w-none;
+    }
+  }
+}
+
+}

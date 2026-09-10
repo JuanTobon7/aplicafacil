@@ -1,0 +1,98 @@
+{
+  "info": {
+    "name": "People API (CRUD)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Person",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"María\",\n  \"lastName\": \"González\",\n  \"email\": \"maria.gonzalez@example.com\",\n  \"phone\": \"+34 611 222 333\",\n  \"linkedinUrl\": \"https://linkedin.com/in/mariagonzalez\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/people",
+          "host": ["{{baseUrl}}"],
+          "path": ["people"]
+        }
+      }
+    },
+    {
+      "name": "Read All People",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/people",
+          "host": ["{{baseUrl}}"],
+          "path": ["people"]
+        }
+      }
+    },
+    {
+      "name": "Read Person by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/people/{{peopleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["people", "{{peopleId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Person",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"María José\",\n  \"lastName\": \"González López\",\n  \"email\": \"mariajose.gonzalez@example.com\",\n  \"phone\": \"+34 611 444 555\",\n  \"linkedinUrl\": \"https://linkedin.com/in/mariajosegonzalez\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/people/{{peopleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["people", "{{peopleId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Person",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/people/{{peopleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["people", "{{peopleId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "peopleId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
