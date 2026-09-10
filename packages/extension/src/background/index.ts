@@ -149,24 +149,34 @@ async function processJobApplication(job: JobToApply): Promise<void> {
         // Abrir la vacante en una pestaña nueva
         const tab = await chrome.tabs.create({ url: job.url, active: false });
 
-        // Esperar a que la página cargue y el content script detecte el formulario.
-        // El flujo de autocompletado (FORM_DETECTED → autoApply) se encarga de
-        // rellenar el formulario. Aquí esperamos un tiempo razonable.
-        await new Promise((resolve) => setTimeout(resolve, 8000));
+        // Esperar a que la página cargue y el content script esté listo
+        await new Promise((resolve) => setTimeout(resolve, 5000));
 
-        // Verificar si el formulario fue completado
+        // Enviar el mensaje de auto-aplicación paso a paso al content script
+        let result;
         try {
-            const response = await chrome.tabs.sendMessage(tab.id!, { type: "READ_FORM" });
-            if (response?.success) {
-                // El formulario sigue presente → la aplicación no se completó
-                await updateJobStatus(job.id, "APPLICATION_FAILED", undefined, "Formulario aún presente tras el intento");
-            } else {
-                // No hay formulario → la aplicación se completó (o no había formulario)
-                await updateJobStatus(job.id, "APPLIED", { url: job.url }, "Auto-aplicación completada");
-            }
-        } catch {
-            // El content script no respondió → asumimos que la aplicación se completó
-            await updateJobStatus(job.id, "APPLIED", { url: job.url }, "Auto-aplicación completada");
+            result = await chrome.tabs.sendMessage(tab.id!, { type: "AUTO_APPLY_JOB" });
+        } catch (e) {
+            console.error(`[Background] Content script no disponible en tab ${tab.id}:`, e);
+            result = { success: false, message: "Content script no disponible" };
+        }
+
+        console.log(`[Background] Resultado de auto-aplicación para ${job.id}:`, result);
+
+        if (result?.success) {
+            await updateJobStatus(
+                job.id,
+                "APPLIED",
+                { url: job.url, stepsCompleted: result.stepsCompleted },
+                result.message || "Auto-aplicación completada"
+            );
+        } else {
+            await updateJobStatus(
+                job.id,
+                "APPLICATION_FAILED",
+                { url: job.url },
+                result?.message || "No se pudo completar la auto-aplicación"
+            );
         }
 
         // Cerrar la pestaña

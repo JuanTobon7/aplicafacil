@@ -1,6 +1,7 @@
 import { Recommendation } from "./api/recommendations";
 import { FormScanner } from "./readers/helpers/FormScanner";
 import { WriterFactory } from "./writers/FactoryWriter";
+import { LinkedInAutoApply } from "./core/LinkedInAutoApply";
 
 // ------------------------------------------------------------------
 console.log("[AutoApply] Content script loaded");
@@ -40,6 +41,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     return true;
+  }
+
+  // Auto-aplicación paso a paso en LinkedIn (scraping real)
+  if (message.type === "AUTO_APPLY_JOB") {
+    console.log("[AutoApply] Iniciando auto-aplicación paso a paso");
+    const autoApply = new LinkedInAutoApply();
+    autoApply.run().then((result) => {
+      console.log("[AutoApply] Resultado de auto-aplicación:", result);
+      sendResponse(result);
+    }).catch((error) => {
+      console.error("[AutoApply] Error en auto-aplicación:", error);
+      sendResponse({
+        success: false,
+        message: error instanceof Error ? error.message : "Error desconocido",
+        stepsCompleted: 0,
+      });
+    });
+    return true; // respuesta asíncrona
   }
 });
 

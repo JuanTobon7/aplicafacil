@@ -22,5 +22,8 @@
     "dev:all:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 stop",
     "dev:all:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 status",
     "dev:all:logs": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 logs"
+  },
+  "dependencies": {
+    "@nestjs/schedule": "^12.0.1"
   }
 }
