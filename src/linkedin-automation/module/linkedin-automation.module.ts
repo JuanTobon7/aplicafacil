@@ -1,19 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScrapingLinkldnServiceImpl } from '../service/impl/scraping/scraping.linkldn.service.impl';
 import { LinkedInComponentsModule } from '../components/linkedin.components.module';
 import { JobRecommendationModule } from '../../jobs/module/job.recommendation.module';
-import { AutomationScheduler } from '../scheduler/automation.scheduler';
-import { SearchJobsProcessor } from '../worker/search-jobs.processor';
-import { ApplyJobProcessor } from '../worker/apply-job.processor';
-import { AutomationService } from '../service/contract/automation.service';
-import { AutomationServiceImpl } from '../service/impl/automation.service.impl';
-import { AutomationConfigModel } from '../models/automation-config.model';
-import { LinkedInAccountModel } from '../models/linkedin-account.model';
+import { JobWorkerAutomation } from '../worker/job.automation.worker';
+import { JobAutomationHelperService } from '../service/job.automation.helper.service';
 import { LinkedinQueueModule } from '../queue/linkedin.queue.module';
-import { LinkedinAccountLockService } from '../service/linkedin.account.lock.service';
-import { ProfileModule } from 'src/profiles/module/profile.module';
+import { PeopleModule } from 'src/people/module/people.module';
 
 @Module({
   imports: [
@@ -21,23 +14,16 @@ import { ProfileModule } from 'src/profiles/module/profile.module';
     LinkedInComponentsModule,
     JobRecommendationModule,
     LinkedinQueueModule,
-    ProfileModule,
-    TypeOrmModule.forFeature([AutomationConfigModel, LinkedInAccountModel]),
+    PeopleModule,
   ],
   providers: [
     {
       provide: 'ScrapingLinkldnService',
       useClass: ScrapingLinkldnServiceImpl,
     },
-    {
-      provide: AutomationService,
-      useClass: AutomationServiceImpl,
-    },
-    LinkedinAccountLockService,
-    AutomationScheduler,
-    SearchJobsProcessor,
-    ApplyJobProcessor,
+    JobAutomationHelperService,
+    JobWorkerAutomation,
   ],
-  exports: ['ScrapingLinkldnService', AutomationService],
+  exports: ['ScrapingLinkldnService'],
 })
 export class LinkedinAutomationModule {}

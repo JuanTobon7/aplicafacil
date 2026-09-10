@@ -11,20 +11,38 @@ export class EasyApplyComponentImpl implements EasyApplyComponent {
     this.logger.log(`Applying to: ${job.job.title}`);
 
     try {
+      // NOTA: 'domcontentloaded' en lugar de 'networkidle2' (LinkedIn mantiene
+      // conexiones persistentes que impiden alcanzar 'idle' en la red).
       await page.goto(job.source.url, {
-        waitUntil: 'networkidle2',
+        waitUntil: 'domcontentloaded',
         timeout: 60_000,
       });
 
-      // Buscar el botón de "Easy Apply"
-      const easyApplyButton = await page.$('button.jobs-apply-button');
+      // Buscar el botón de "Easy Apply" (Solicitud sencilla).
+      // LinkedIn cambia las clases CSS dinámicamente, así que buscamos
+      // por texto estable en lugar de depender de una clase concreta.
+      const clicked = await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const btn = buttons.find((b) => {
+          const text = (b.textContent ?? '').trim().toLowerCase();
+          return (
+            text.includes('solicitud sencilla') ||
+            text.includes('easy apply')
+          );
+        });
 
-      if (!easyApplyButton) {
+        if (btn) {
+          (btn as HTMLButtonElement).click();
+          return true;
+        }
+        return false;
+      });
+
+      if (!clicked) {
         this.logger.warn(`No Easy Apply button found for ${job.job.title}`);
         return;
       }
 
-      await easyApplyButton.click();
       await page.waitForSelector('.jobs-easy-apply-modal', {
         timeout: 30_000,
       });

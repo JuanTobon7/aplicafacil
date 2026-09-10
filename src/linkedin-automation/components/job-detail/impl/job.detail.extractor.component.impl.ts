@@ -23,8 +23,10 @@ export class JobDetailExtractorComponentImpl
     this.logger.log(`Extracting job: ${url}`);
 
     try {
+      // NOTA: 'domcontentloaded' en lugar de 'networkidle2' (LinkedIn mantiene
+      // conexiones persistentes que impiden alcanzar 'idle' en la red).
       await page.goto(url, {
-        waitUntil: 'networkidle2',
+        waitUntil: 'domcontentloaded',
         timeout: 60_000,
       });
 
@@ -34,7 +36,57 @@ export class JobDetailExtractorComponentImpl
         { timeout: 30_000 },
       );
 
-      const jobData = await page.evaluate(() => {
+      return this.readJobFromDom(page, url);
+    } catch (error) {
+      this.logger.error(`Error extracting job ${url}: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Lee el detalle de la vacante ya cargada en el panel derecho (two-pane)
+   * SIN navegar. Requiere que previamente se haya hecho click en la tarjeta.
+   */
+  async extractJobFromPanel(
+    page: Page,
+    url: string,
+  ): Promise<JobPostingDto | null> {
+    this.logger.log(`Extracting job from panel: ${url}`);
+
+    try {
+      // Esperar a que cargue el detalle de la vacante en el panel derecho.
+      // En el nuevo DOM el panel derecho puede tardar en renderizar;
+      // esperamos el título de la tarjeta superior o el contenedor genérico.
+      await page.waitForFunction(
+        () => {
+          return (
+            document.querySelector(
+              '.job-details-jobs-unified-top-card__job-title',
+            ) !== null ||
+            document.querySelector(
+              '.jobs-search__job-details--container',
+            ) !== null
+          );
+        },
+        { timeout: 30_000 },
+      );
+
+      return this.readJobFromDom(page, url);
+    } catch (error) {
+      this.logger.error(`Error extracting job from panel ${url}: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Lee los datos de la vacante desde el DOM actual de la página
+   * (ya sea tras navegar o tras hacer click en una tarjeta del panel).
+   */
+  private async readJobFromDom(
+    page: Page,
+    url: string,
+  ): Promise<JobPostingDto | null> {
+    const jobData = await page.evaluate(() => {
         const getText = (selector: string): string => {
           const el = document.querySelector(selector);
           return el?.textContent?.trim() ?? '';
@@ -142,10 +194,6 @@ export class JobDetailExtractorComponentImpl
       job.extractedAt = new Date();
 
       return job;
-    } catch (error) {
-      this.logger.error(`Error extracting job ${url}: ${error}`);
-      return null;
-    }
   }
 
   /**

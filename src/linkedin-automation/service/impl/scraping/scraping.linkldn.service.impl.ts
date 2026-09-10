@@ -54,6 +54,10 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
   /**
    * Obtiene la lista de vacantes a postularse navegando a la página de
    * búsqueda de empleos, aplicando los filtros y extrayendo las vacantes.
+   *
+   * El flujo navega ENTRE las tarjetas de la lista (click en cada una para
+   * cargar el detalle en el panel derecho) en lugar de hacer page.goto()
+   * por cada vacante, que es más lento y propenso a bloqueos.
    */
   async getJobsToApply(params: LinkedInSearchParams): Promise<JobPostingDto[]> {
     this.logger.log('Getting jobs to apply...');
@@ -64,13 +68,38 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
 
     const jobs: JobPostingDto[] = [];
     for (const link of jobLinks) {
-      const job = await this.jobDetailExtractor.extractJob(page, link);
-      if (job) {
-        jobs.push(job);
+      const jobId = this.extractJobId(link);
+      if (!jobId) {
+        this.logger.warn(`Could not extract jobId from ${link}`);
+        continue;
+      }
+
+      try {
+        // Navegar a la tarjeta: click para cargar el detalle en el panel derecho
+        await this.jobSearchComponent.clickJobCard(page, jobId);
+
+        // Leer el detalle del panel derecho (sin navegar)
+        const job = await this.jobDetailExtractor.extractJobFromPanel(
+          page,
+          link,
+        );
+        if (job) {
+          jobs.push(job);
+        }
+      } catch (error) {
+        this.logger.warn(`Could not process job ${link}: ${error}`);
       }
     }
 
     return jobs;
+  }
+
+  /**
+   * Extrae el jobId numérico de una URL de vacante de LinkedIn.
+   */
+  private extractJobId(url: string): string | null {
+    const match = /\/jobs\/view\/(\d+)/.exec(url);
+    return match?.[1] ?? null;
   }
 
   /**

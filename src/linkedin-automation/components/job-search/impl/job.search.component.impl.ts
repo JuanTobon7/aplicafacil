@@ -3,25 +3,44 @@ import { Page } from 'puppeteer';
 import { LinkedInSearchParams } from '../../../dto/params.lindkln.search';
 import { JobSearchComponent } from '../contract/job.search.component';
 
+/**
+ * Selectores estables del DOM de LinkedIn (variante scaffold-layout).
+ *
+ * LinkedIn genera clases CSS dinámicas (hashes tipo `_970c3eec`,
+ * `yACmkvJPKuTKPJgaDkPBuzoDHPNuZJKI`, etc.) que cambian en cada deploy.
+ * En su lugar usamos clases semánticas estables y atributos de enlace:
+ *
+ * scaffold-layout__list
+ *         │
+ *         ▼
+ * .job-card-container
+ *         │
+ *         ▼
+ * a[href*="/jobs/view/"]
+ *         │
+ *         ▼
+ * href → URL absoluta de la vacante
+ *
+ * La URL se extrae del href del enlace de cada tarjeta (NO se reconstruye
+ * manualmente a partir del título o del jobId).
+ */
+const SELECTORS = {
+  /** Contenedor principal de la lista de resultados de búsqueda. */
+  RESULTS_CONTAINER: '.scaffold-layout__list',
+  /** Cada tarjeta de empleo dentro del contenedor de resultados. */
+  JOB_CARD: '.job-card-container',
+  /** Enlace al detalle de la vacante dentro de cada tarjeta. */
+  JOB_URL: 'a[href*="/jobs/view/"]',
+} as const;
+
+/** Prefijo base para convertir URLs relativas de LinkedIn en absolutas. */
+const LINKEDIN_BASE_URL = 'https://www.linkedin.com';
+
 @Injectable()
 export class JobSearchComponentImpl implements JobSearchComponent {
   private readonly logger = new Logger(JobSearchComponentImpl.name);
 
   private readonly JOBS_URL = 'https://www.linkedin.com/jobs/search/';
-
-  /**
-   * Contenedor de la lista de resultados (nuevo DOM LazyColumn de LinkedIn).
-   * Actúa como la "ul" que agrupa todas las tarjetas de empleo.
-   */
-  private readonly RESULTS_CONTAINER_SELECTOR =
-    '[componentkey="SearchResultsMainContent"]';
-
-  /**
-   * Selector de cada tarjeta de empleo dentro del contenedor de resultados.
-   * El jobId se extrae del atributo componentkey: job-card-component-ref-<jobId>.
-   */
-  private readonly JOB_CARD_SELECTOR =
-    'div[componentkey^="job-card-component-ref-"]';
 
   private readonly TIME_FILTER_MAP: Record<string, string> = {
     '24_hour': 'r86400',
@@ -42,21 +61,23 @@ export class JobSearchComponentImpl implements JobSearchComponent {
 
     const url = `${this.JOBS_URL}?keywords=${encodeURIComponent(params.title)}&location=${locationParam}&${remoteParam}&f_TPR=${timeFilter}&f_AL=${params.easyApply}`;
 
+    // NOTA: usamos 'domcontentloaded' en lugar de 'networkidle2' porque
+    // LinkedIn mantiene conexiones persistentes (websockets/polling) que
+    // impiden que la red alcance 'idle', colgando el page.goto.
     await page.goto(url, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });
 
-    // Esperar a que cargue la lista de resultados (nuevo DOM LazyColumn)
-    await page.waitForSelector(this.RESULTS_CONTAINER_SELECTOR, {
+    // Esperar a que cargue la lista de resultados
+    await page.waitForSelector(SELECTORS.JOB_CARD, {
       timeout: 30_000,
     });
 
     // Scroll para cargar más resultados
     await this.autoScroll(page);
 
-    // Iterar sobre las tarjetas de empleo, hacer click en cada una
-    // y extraer el jobId para construir la URL de la vacante
+    // Extraer las URLs de las tarjetas de empleo
     const jobLinks = await this.collectJobLinks(page);
 
     this.logger.log(`Found ${jobLinks.length} job links.`);
@@ -64,54 +85,73 @@ export class JobSearchComponentImpl implements JobSearchComponent {
   }
 
   /**
+   * Hace click en la tarjeta de empleo correspondiente al jobId para
+   * cargar su detalle en el panel derecho (navegación entre tarjetas).
+   */
+  async clickJobCard(page: Page, jobId: string): Promise<void> {
+    const card = await page.$(
+      `${SELECTORS.RESULTS_CONTAINER} ${SELECTORS.JOB_CARD} ${SELECTORS.JOB_URL}[href*="/jobs/view/${jobId}"]`,
+    );
+
+    if (!card) {
+      throw new Error(`Job card ${jobId} not found in the results list.`);
+    }
+
+    // Click en el enlace del título (evita abrir pestaña nueva)
+    await card.click();
+  }
+
+  /**
    * Itera sobre las tarjetas de empleo dentro del contenedor de resultados.
    *
    * Por cada tarjeta:
-   * 1. Extrae el jobId del atributo `componentkey="job-card-component-ref-<jobId>"`.
-   * 2. Hace click en la tarjeta para que LinkedIn cargue el detalle en el
-   *    panel derecho (necesario en el nuevo DOM LazyColumn).
-   * 3. Construye la URL de la vacante: https://www.linkedin.com/jobs/view/<jobId>.
+   * 1. Busca el enlace `a[href*="/jobs/view/"]`.
+   * 2. Extrae el atributo `href`.
+   * 3. Convierte la URL relativa en absoluta cuando es necesario.
    */
   private async collectJobLinks(page: Page): Promise<string[]> {
     const jobLinks: string[] = [];
 
     const cards = await page.$$(
-      `${this.RESULTS_CONTAINER_SELECTOR} ${this.JOB_CARD_SELECTOR}`,
+      `${SELECTORS.RESULTS_CONTAINER} ${SELECTORS.JOB_CARD}`,
     );
 
     this.logger.log(`Found ${cards.length} job cards in the results list.`);
 
     for (const card of cards) {
-      const componentKey = await card.evaluate((el) =>
-        el.getAttribute('componentkey'),
-      );
-      const match = /job-card-component-ref-(\d+)/.exec(componentKey ?? '');
-      if (!match) {
-        this.logger.warn(
-          `Job card without valid componentkey: ${componentKey}`,
-        );
+      const link = await card.$(SELECTORS.JOB_URL);
+      if (!link) {
+        this.logger.warn('Job card without a /jobs/view/ link.');
         continue;
       }
 
-      const jobId = match[1];
-      jobLinks.push(`https://www.linkedin.com/jobs/view/${jobId}`);
-
-      // Hacer click en la tarjeta para cargar el detalle en el panel derecho
-      try {
-        await card.click();
-        // Pequeña espera para que el detalle se cargue
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      } catch (error) {
-        this.logger.warn(`Could not click job card ${jobId}: ${error}`);
+      const href = await link.evaluate((el) => el.getAttribute('href'));
+      if (!href) {
+        this.logger.warn('Job card link without href.');
+        continue;
       }
+
+      jobLinks.push(this.toAbsoluteUrl(href));
     }
 
     return jobLinks;
   }
 
   /**
+   * Convierte una URL relativa de LinkedIn en absoluta.
+   * Ejemplo: "/jobs/view/4462988555/?eBP=..." →
+   *          "https://www.linkedin.com/jobs/view/4462988555/?eBP=..."
+   */
+  private toAbsoluteUrl(href: string): string {
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      return href;
+    }
+    return `${LINKEDIN_BASE_URL}${href.startsWith('/') ? '' : '/'}${href}`;
+  }
+
+  /**
    * Hace scroll automático dentro del contenedor de resultados para cargar
-   * más tarjetas (el nuevo DOM LazyColumn tiene su propio scroll container).
+   * más tarjetas (el contenedor tiene su propio scroll container).
    */
   private async autoScroll(page: Page): Promise<void> {
     await page.evaluate(
@@ -134,7 +174,7 @@ export class JobSearchComponentImpl implements JobSearchComponent {
           }, 200);
         });
       },
-      this.RESULTS_CONTAINER_SELECTOR,
+      SELECTORS.RESULTS_CONTAINER,
     );
   }
 }

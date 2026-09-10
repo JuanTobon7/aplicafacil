@@ -100,6 +100,59 @@ export class RedisService implements OnModuleDestroy {
     await this.run((client) => client.del(key));
   }
 
+  /**
+   * Elimina una clave (DEL).
+   */
+  async del(key: string): Promise<void> {
+    await this.run((client) => client.del(key));
+  }
+
+  // ------------------------------------------------------------------
+  // Operaciones de cola (listas Redis: LPUSH / RPOP / LLEN)
+  // ------------------------------------------------------------------
+
+  /**
+   * Encola un elemento al inicio de la lista (LPUSH).
+   * Devuelve la longitud de la lista tras el push, o null si Redis no está.
+   */
+  async queuePush(key: string, value: string): Promise<number | null> {
+    return this.run((client) => client.lpush(key, value));
+  }
+
+  /**
+   * Encola varios elementos al inicio de la lista (LPUSH múltiple).
+   * Devuelve la longitud de la lista, o null si Redis no está.
+   */
+  async queuePushMany(key: string, values: string[]): Promise<number | null> {
+    if (values.length === 0) return 0;
+    return this.run((client) => client.lpush(key, ...values));
+  }
+
+  /**
+   * Saca un elemento del final de la lista (RPOP).
+   * Devuelve el valor, o null si la lista está vacía o Redis no está.
+   */
+  async queuePop(key: string): Promise<string | null> {
+    return this.run((client) => client.rpop(key));
+  }
+
+  /**
+   * Longitud de la lista (LLEN).
+   * Devuelve 0 si la lista no existe o Redis no está disponible.
+   */
+  async queueLength(key: string): Promise<number> {
+    const len = await this.run((client) => client.llen(key));
+    return len ?? 0;
+  }
+
+  /**
+   * Devuelve todos los elementos de la lista sin sacarlos (LRANGE 0 -1).
+   */
+  async queuePeekAll(key: string): Promise<string[]> {
+    const items = await this.run((client) => client.lrange(key, 0, -1));
+    return items ?? [];
+  }
+
   // ------------------------------------------------------------------
   private async run<T>(fn: (client: Redis) => Promise<T>): Promise<T | null> {
     if (!this.client) return null;
