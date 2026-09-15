@@ -108,6 +108,7 @@ export class JobSearchComponentImpl implements JobSearchComponent {
    * 1. Busca el enlace `a[href*="/jobs/view/"]`.
    * 2. Extrae el atributo `href`.
    * 3. Convierte la URL relativa en absoluta cuando es necesario.
+   * 4. Valida que sea una URL de vista real (/jobs/view/<jobId>), no de búsqueda.
    */
   private async collectJobLinks(page: Page): Promise<string[]> {
     const jobLinks: string[] = [];
@@ -131,10 +132,40 @@ export class JobSearchComponentImpl implements JobSearchComponent {
         continue;
       }
 
-      jobLinks.push(this.toAbsoluteUrl(href));
+      const absoluteUrl = this.toAbsoluteUrl(href);
+
+      // Validación estricta: solo URLs de vista real (/jobs/view/<jobId>)
+      if (!this.isValidViewUrl(absoluteUrl)) {
+        this.logger.warn(
+          `Discarding non-view URL: ${absoluteUrl} (must match /jobs/view/<jobId>)`,
+        );
+        continue;
+      }
+
+      jobLinks.push(absoluteUrl);
     }
 
     return jobLinks;
+  }
+
+  /**
+   * Valida que la URL sea una URL de vista de empleo real.
+   * Patrón: https://www.linkedin.com/jobs/view/<jobId>[?...]
+   * Rechaza URLs de búsqueda (/jobs/search/), de empresa, etc.
+   */
+  private isValidViewUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      // Debe ser linkedin.com
+      if (!parsed.hostname.endsWith('linkedin.com')) {
+        return false;
+      }
+      // Path debe empezar con /jobs/view/ seguido de al menos un carácter (jobId)
+      const pathMatch = /^\/jobs\/view\/([^/?#]+)/.exec(parsed.pathname);
+      return pathMatch !== null && pathMatch[1].length > 0;
+    } catch {
+      return false;
+    }
   }
 
   /**

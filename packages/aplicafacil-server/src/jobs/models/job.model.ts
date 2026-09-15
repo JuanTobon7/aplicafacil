@@ -39,7 +39,7 @@ export class JobModel {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   url?: string;
 
   @Column({ length: 100, nullable: true })

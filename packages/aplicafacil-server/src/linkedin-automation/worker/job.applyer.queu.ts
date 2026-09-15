@@ -2,8 +2,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JobModel } from 'src/jobs/models/job.model';
 import { RedisService } from 'src/common/redis/redis.service';
-import { LINKEDIN_APPLY_QUEUE } from '../queue/linkedin.queue.module';
-import { ApplyJobData } from './apply-job.processor';
+import { LINKEDIN_APPLY_QUEUE } from '../queue/queue.constants';
+import { ApplyJobData } from './apply-job.types';
 
 /**
  * Productor de la cola de aplicación de vacantes (lista Redis).

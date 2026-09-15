@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ScrapingLinkldnService } from "../service/contract/scraping.linkldn.service";
 import { JobPostingDto } from "src/jobs/dto/req/job..osting.dto";
@@ -10,11 +10,10 @@ import { JobAutomationHelperService } from "../service/job.automation.helper.ser
 import { JobApplyerQueue } from "./job.applyer.queu";
 
 @Injectable()
-export class JobWorkerAutomation implements OnModuleInit {
+export class JobWorkerAutomation implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(JobWorkerAutomation.name);
     params: LinkedInSearchParams;
     private readonly MAX_JOBS_TO_APPLY = 10;
-    credentialsLinkdln: {email: string, password: string};
 
     constructor(
         @Inject('ScrapingLinkldnService') 
@@ -31,12 +30,11 @@ export class JobWorkerAutomation implements OnModuleInit {
             'Colombia', 
             true,
         );
-        this.credentialsLinkdln = this.helper.getCredentialsLinkdln();
     }
 
     /**
-     * Se ejecuta apenas el servidor arranca: abre el navegador y dispara
-     * el primer ciclo de aplicación a vacantes pendientes sin esperar al cron.
+     * Se ejecuta apenas el servidor arranca: encola las vacantes MATCHED
+     * pendientes para que el procesador de la cola las aplique una a una.
      */
     async onModuleInit(): Promise<void> {
         this.logger.log('Job automation starting on server startup...');
@@ -49,13 +47,22 @@ export class JobWorkerAutomation implements OnModuleInit {
         }
     }
 
+    /**
+     * Cierra el navegador compartido al apagar el servidor.
+     */
+    async onModuleDestroy(): Promise<void> {
+        this.logger.log('Closing shared LinkedIn browser...');
+        await this.scrapingLinkldnService.close();
+    }
+
     @Cron(CronExpression.EVERY_5_MINUTES)
     async startJobAutomation(){
         this.logger.log('Starting job automation process...');
 
         const userId = await this.helper.getAutomationUserId();
 
-        await this.scrapingLinkldnService.openLinkdlnProfile(this.credentialsLinkdln);
+        const credentials = this.helper.getCredentialsLinkdln();
+        await this.scrapingLinkldnService.openLinkdlnProfile(credentials);
 
         const searchJobsToApply : JobPostingDto[] = await this.scrapingLinkldnService.getJobsToApply(this.params);
         const validJobs = await this.validateJobsService.validateJobsApplied(this.jobsService, searchJobsToApply, userId);
@@ -69,10 +76,10 @@ export class JobWorkerAutomation implements OnModuleInit {
 
         this.logger.log(`Found ${jobsToApplyLimited.length} valid jobs to apply for.`);
         await this.validateJobsService.markJobsAsPending(this.jobsService, jobsToApplyLimited, userId);
-        await this.scrapingLinkldnService.close();
+        // El navegador se mantiene abierto para que la cola lo reutilice.
     }
 
-    @Cron(CronExpression.EVERY_10_MINUTES)
+    @Cron(CronExpression.EVERY_5_MINUTES)
     async applyToPendingJobs() {
         this.logger.log('Starting job application process...');
 
@@ -84,6 +91,11 @@ export class JobWorkerAutomation implements OnModuleInit {
         }
 
         this.logger.log(`Found ${pendingJobs.length} pending jobs to apply for.`);
+
+        // Abrir la sesión de LinkedIn para que la cola reutilice el navegador
+        await this.scrapingLinkldnService.openLinkdlnProfile(
+            this.helper.getCredentialsLinkdln(),
+        );
 
         // Encolar las vacantes para que el procesador las aplique una a una
         const enqueued = await this.jobApplyerQueue.enqueueJobs(

@@ -30,14 +30,33 @@ export class JobProcessor {
   async process(data: ApplyJobData): Promise<void> {
     const { jobId, url, title } = data;
     this.logger.log(`[Queue] Processing job: ${title} (${url})`);
-
+    await this.scrapingLinkldnService.openLinkdlnProfile(
+      this.helper.getCredentialsLinkdln(),
+    );
     const claimed = await this.claimJob(jobId, title);
     if (!claimed) {
       return; // otro worker ya lo tomó
     }
 
-    await this.applyToJob(claimed);
-    await this.markAsApplied(claimed.id, title);
+    try {
+      await this.applyToJob(claimed);
+      await this.markAsApplied(claimed.id, title);
+    } catch (error) {
+      // La aplicación falló (sin botón Easy Apply, formulario no enviado, etc.)
+      // NO marcar APPLIED. Marcar APPLICATION_FAILED para no re-procesar.
+      this.logger.error(
+        `[Queue] Application failed for ${title}: ${
+          error instanceof Error ? error.message : error
+        }`,
+      );
+      await this.jobsService.updateStatusJob(
+        claimed.id,
+        JobApplicationStatus.APPLICATION_FAILED,
+        `Auto-aplicación falló: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /**

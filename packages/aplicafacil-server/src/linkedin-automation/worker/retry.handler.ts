@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/common/redis/redis.service';
-import { LINKEDIN_APPLY_QUEUE } from '../queue/linkedin.queue.module';
+import { LINKEDIN_APPLY_QUEUE } from '../queue/queue.constants';
 import { ApplyJobData } from './apply-job.types';
 
 /**

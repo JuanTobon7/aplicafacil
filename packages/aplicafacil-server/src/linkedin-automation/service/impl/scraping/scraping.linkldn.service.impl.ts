@@ -14,6 +14,8 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
   private readonly logger = new Logger(ScrapingLinkldnServiceImpl.name);
   private browser: Browser | null = null;
   private page: Page | null = null;
+  /** Pestaña separada para búsqueda (la principal es exclusiva de la cola). */
+  private searchPage: Page | null = null;
 
   constructor(
     @Inject(BrowserManager)
@@ -30,6 +32,9 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
 
   /**
    * Abre el perfil de LinkedIn iniciando sesión con las credenciales dadas.
+   *
+   * Idempotente: si el navegador ya está abierto y logueado, no hace nada.
+   * Esto permite que la cola reutilice la misma sesión sin re-loguear.
    */
   async openLinkdlnProfile({
     email,
@@ -38,6 +43,11 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
     email: string;
     password: string;
   }): Promise<void> {
+    if (this.page) {
+      this.logger.log('LinkedIn profile already open. Reusing session.');
+      return;
+    }
+
     this.logger.log('Opening LinkedIn profile...');
 
     if (!this.browser) {
@@ -55,6 +65,10 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
    * Obtiene la lista de vacantes a postularse navegando a la página de
    * búsqueda de empleos, aplicando los filtros y extrayendo las vacantes.
    *
+   * SIEMPRE usa una pestaña separada (searchPage) para no interferir con
+   * la página principal que usa la cola para postular. Así el cron de
+   * búsqueda nunca pisa una postulación en curso.
+   *
    * El flujo navega ENTRE las tarjetas de la lista (click en cada una para
    * cargar el detalle en el panel derecho) en lugar de hacer page.goto()
    * por cada vacante, que es más lento y propenso a bloqueos.
@@ -62,7 +76,7 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
   async getJobsToApply(params: LinkedInSearchParams): Promise<JobPostingDto[]> {
     this.logger.log('Getting jobs to apply...');
 
-    const page = this.requirePage();
+    const page = await this.getSearchPage();
 
     const jobLinks = await this.jobSearchComponent.searchJobs(page, params);
 
@@ -115,12 +129,13 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
 
   /**
    * Resuelve el formulario de postulación y aplica a la vacante.
+   * Marca la página principal como "en uso" para que el cron de búsqueda
+   * abra una pestaña separada y no pise la postulación en curso.
    */
   async resolveFillFormAndApply(job: JobPostingDto): Promise<void> {
     this.logger.log(`Resolving fill form and applying to: ${job.job.title}`);
 
     const page = this.requirePage();
-
     await this.easyApplyComponent.apply(page, job);
   }
 
@@ -132,7 +147,26 @@ export class ScrapingLinkldnServiceImpl implements ScrapingLinkldnService {
       await this.browserManager.close(this.browser);
       this.browser = null;
       this.page = null;
+      this.searchPage = null;
     }
+  }
+
+  /**
+   * Retorna la página a usar para búsqueda.
+   * SIEMPRE abre/usa una pestaña separada para no interferir con la cola.
+   */
+  private async getSearchPage(): Promise<Page> {
+    if (!this.browser) {
+      throw new Error(
+        'LinkedIn browser is not open. Call openLinkdlnProfile first.',
+      );
+    }
+
+    if (!this.searchPage) {
+      this.logger.log('Opening new tab for job search...');
+      this.searchPage = await this.browserManager.newPage(this.browser);
+    }
+    return this.searchPage;
   }
 
   /**

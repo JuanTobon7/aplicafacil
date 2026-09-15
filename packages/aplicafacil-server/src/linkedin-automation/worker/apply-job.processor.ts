@@ -36,15 +36,18 @@ export class ApplyJobProcessor implements OnModuleInit, OnModuleDestroy {
    * Si falla, delega al RetryHandler.
    */
   private async handleJob(raw: string): Promise<void> {
+    let data: ApplyJobData | undefined;
     try {
-      const data = this.parseJob(raw);
+      data = this.parseJob(raw);
       await this.jobProcessor.process(data);
     } catch (error) {
       this.logger.error(
         `[Queue] Error processing job: ${error instanceof Error ? error.message : error}`,
       );
-      // Re-encolar para reintentar (máx. 3 intentos)
-      await this.retryHandler.retry(data);
+      // Re-encolar para reintentar (máx. 3 intentos) solo si el parseo fue exitoso
+      if (data) {
+        await this.retryHandler.retry(data);
+      }
     }
   }
 

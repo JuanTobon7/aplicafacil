@@ -5,9 +5,11 @@ import { QueuePoller } from '../worker/queue.poller';
 import { JobProcessor } from '../worker/job.processor';
 import { RetryHandler } from '../worker/retry.handler';
 import { RedisModule } from '../../common/redis/redis.module';
-
-/** Nombre de la cola de aplicación de vacantes (lista Redis). */
-export const LINKEDIN_APPLY_QUEUE = 'linkedin-apply';
+import { LinkedInComponentsModule } from '../components/linkedin.components.module';
+import { JobRecommendationModule } from '../../jobs/module/job.recommendation.module';
+import { PeopleModule } from '../../people/module/people.module';
+import { ScrapingLinkldnServiceImpl } from '../service/impl/scraping/scraping.linkldn.service.impl';
+import { JobAutomationHelperService } from '../service/job.automation.helper.service';
 
 /**
  * Cola de aplicación de vacantes basada en Redis (listas LPUSH/RPOP).
@@ -17,14 +19,28 @@ export const LINKEDIN_APPLY_QUEUE = 'linkedin-apply';
  * el sistema continúa funcionando.
  */
 @Module({
-  imports: [RedisModule],
+  imports: [
+    RedisModule,
+    LinkedInComponentsModule,
+    JobRecommendationModule,
+    PeopleModule,
+  ],
   providers: [
     JobApplyerQueue,
     ApplyJobProcessor,
     QueuePoller,
     JobProcessor,
     RetryHandler,
+    {
+      provide: 'ScrapingLinkldnService',
+      useClass: ScrapingLinkldnServiceImpl,
+    },
+    JobAutomationHelperService,
   ],
-  exports: [JobApplyerQueue],
+  exports: [
+    JobApplyerQueue,
+    'ScrapingLinkldnService',
+    JobAutomationHelperService,
+  ],
 })
 export class LinkedinQueueModule {}
