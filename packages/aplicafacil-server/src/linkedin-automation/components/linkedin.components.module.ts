@@ -9,9 +9,27 @@ import { JobDetailExtractorComponent } from './job-detail/contract/job.detail.ex
 import { JobDetailExtractorComponentImpl } from './job-detail/impl/job.detail.extractor.component.impl';
 import { EasyApplyComponent } from './easy-apply/contract/easy.apply.component';
 import { EasyApplyComponentImpl } from './easy-apply/impl/easy.apply.component.impl';
+import { EasyApplyButtonClicker } from './easy-apply/contract/easy.apply.button.clicker';
+import { EasyApplyButtonClickerImpl } from './easy-apply/impl/easy.apply.button.clicker.impl';
+import { EasyApplyFormFiller } from './easy-apply/contract/easy.apply.form.filler';
+import { EasyApplyFormFillerImpl } from './easy-apply/impl/easy.apply.form.filler.impl';
+import { CaptchaDetector } from './captcha/contract/captcha.detector';
+import { CaptchaDetectorImpl } from './captcha/impl/captcha.detector.impl';
+import { SessionStore } from './session-store/contract/session.store';
+import { SessionStoreImpl } from './session-store/impl/session.store.impl';
+import { HumanBehaviorService } from '../common/human-behavior.service';
 
 @Module({
   providers: [
+    HumanBehaviorService,
+    {
+      provide: CaptchaDetector,
+      useClass: CaptchaDetectorImpl,
+    },
+    {
+      provide: SessionStore,
+      useClass: SessionStoreImpl,
+    },
     {
       provide: BrowserManager,
       useClass: BrowserManagerImpl,
@@ -32,6 +50,14 @@ import { EasyApplyComponentImpl } from './easy-apply/impl/easy.apply.component.i
       provide: EasyApplyComponent,
       useClass: EasyApplyComponentImpl,
     },
+    {
+      provide: EasyApplyButtonClicker,
+      useClass: EasyApplyButtonClickerImpl,
+    },
+    {
+      provide: EasyApplyFormFiller,
+      useClass: EasyApplyFormFillerImpl,
+    },
   ],
   exports: [
     BrowserManager,
@@ -39,6 +65,9 @@ import { EasyApplyComponentImpl } from './easy-apply/impl/easy.apply.component.i
     JobSearchComponent,
     JobDetailExtractorComponent,
     EasyApplyComponent,
+    CaptchaDetector,
+    SessionStore,
+    HumanBehaviorService,
   ],
 })
 export class LinkedInComponentsModule {}

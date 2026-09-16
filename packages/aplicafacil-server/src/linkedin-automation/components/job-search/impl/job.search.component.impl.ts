@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Page } from 'puppeteer';
 import { LinkedInSearchParams } from '../../../dto/params.lindkln.search';
 import { JobSearchComponent } from '../contract/job.search.component';
+import { HumanBehaviorService } from '../../../common/human-behavior.service';
 
 /**
  * Selectores estables del DOM de LinkedIn (variante scaffold-layout).
@@ -42,6 +43,8 @@ export class JobSearchComponentImpl implements JobSearchComponent {
 
   private readonly JOBS_URL = 'https://www.linkedin.com/jobs/search/';
 
+  constructor(private readonly human: HumanBehaviorService) {}
+
   private readonly TIME_FILTER_MAP: Record<string, string> = {
     '24_hour': 'r86400',
     '1_week': 'r604800',
@@ -74,6 +77,9 @@ export class JobSearchComponentImpl implements JobSearchComponent {
       timeout: 30_000,
     });
 
+    // Pausa humana antes de empezar a interactuar con la lista.
+    await this.human.wait();
+
     // Scroll para cargar más resultados
     await this.autoScroll(page);
 
@@ -97,8 +103,10 @@ export class JobSearchComponentImpl implements JobSearchComponent {
       throw new Error(`Job card ${jobId} not found in the results list.`);
     }
 
-    // Click en el enlace del título (evita abrir pestaña nueva)
+    // Click humano en el enlace del título (evita abrir pestaña nueva)
+    await this.human.wait();
     await card.click();
+    await this.human.wait();
   }
 
   /**
@@ -183,29 +191,11 @@ export class JobSearchComponentImpl implements JobSearchComponent {
   /**
    * Hace scroll automático dentro del contenedor de resultados para cargar
    * más tarjetas (el contenedor tiene su propio scroll container).
+   *
+   * Se delega en HumanBehaviorService para que el scroll se haga en pasos
+   * pequeños con pausas variables (comportamiento humano).
    */
   private async autoScroll(page: Page): Promise<void> {
-    await page.evaluate(
-      async (containerSelector: string) => {
-        const container = document.querySelector(containerSelector);
-        if (!container) return;
-
-        await new Promise<void>((resolve) => {
-          let totalHeight = 0;
-          const distance = 500;
-          const timer = setInterval(() => {
-            const scrollHeight = container.scrollHeight;
-            container.scrollBy(0, distance);
-            totalHeight += distance;
-
-            if (totalHeight >= scrollHeight) {
-              clearInterval(timer);
-              resolve();
-            }
-          }, 200);
-        });
-      },
-      SELECTORS.RESULTS_CONTAINER,
-    );
+    await this.human.scroll(page, SELECTORS.RESULTS_CONTAINER);
   }
 }

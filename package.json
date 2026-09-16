@@ -24,6 +24,8 @@
     "dev:all:logs": "powershell -NoProfile -ExecutionPolicy Bypass -File ./dev.ps1 logs"
   },
   "dependencies": {
-    "@nestjs/schedule": "^12.0.1"
+    "@nestjs/schedule": "^12.0.2",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }

@@ -1,9 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Page } from 'puppeteer';
 import {
   LinkedInCredentials,
   LinkedInLoginComponent,
 } from '../contract/linkedin.login.component';
+import { SessionStore } from '../../session-store/contract/session.store';
+import { HumanBehaviorService } from '../../../common/human-behavior.service';
 
 @Injectable()
 export class LinkedInLoginComponentImpl
@@ -15,11 +17,24 @@ export class LinkedInLoginComponentImpl
 
   private readonly LOGIN_URL = 'https://www.linkedin.com/login';
 
+  constructor(
+    @Inject(SessionStore)
+    private readonly sessionStore: SessionStore,
+    private readonly human: HumanBehaviorService,
+  ) {}
+
   async login(
     page: Page,
     credentials: LinkedInCredentials,
   ): Promise<void> {
     this.logger.log('Opening LinkedIn login...');
+
+    /*
+     * Restaurar la sesión guardada (cookies) antes de navegar para que
+     * LinkedIn nos reconozca como autenticados y no tengamos que
+     * loguearnos de nuevo.
+     */
+    await this.sessionStore.load(page);
 
     await page.goto(this.LOGIN_URL, {
       waitUntil: 'domcontentloaded',
@@ -65,9 +80,13 @@ export class LinkedInLoginComponentImpl
      * + dispatching an "input" event makes React see the value.
      */
     await this.fillInput(page, emailSelector, credentials.email);
+    await this.human.wait();
     await this.fillInput(page, passwordSelector, credentials.password);
 
     this.logger.log('Credentials filled.');
+
+    // Pausa humana antes de pulsar el botón de login.
+    await this.human.wait();
 
     /*
      * Find and click the login button directly in the browser.
@@ -113,6 +132,9 @@ export class LinkedInLoginComponentImpl
 
     this.logger.log('Botón "Iniciar sesión" encontrado y clickeado.');
 
+    // Pausa humana tras el click antes de esperar el resultado.
+    await this.human.wait();
+
     /*
      * Don't use waitForNavigation().
      *
@@ -124,6 +146,12 @@ export class LinkedInLoginComponentImpl
     this.logger.log(
       `LinkedIn login finished. Current URL: ${page.url()}`,
     );
+
+    /*
+     * Guardar la sesión (cookies) para no tener que loguearnos en la
+     * próxima ejecución del navegador.
+     */
+    await this.sessionStore.save(page);
   }
 
   /**

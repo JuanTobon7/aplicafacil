@@ -55,7 +55,7 @@ export class JobWorkerAutomation implements OnModuleInit, OnModuleDestroy {
         await this.scrapingLinkldnService.close();
     }
 
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    /*@Cron(CronExpression.EVERY_5_MINUTES)
     async startJobAutomation(){
         this.logger.log('Starting job automation process...');
 
@@ -77,7 +77,7 @@ export class JobWorkerAutomation implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Found ${jobsToApplyLimited.length} valid jobs to apply for.`);
         await this.validateJobsService.markJobsAsPending(this.jobsService, jobsToApplyLimited, userId);
         // El navegador se mantiene abierto para que la cola lo reutilice.
-    }
+    }*/
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async applyToPendingJobs() {

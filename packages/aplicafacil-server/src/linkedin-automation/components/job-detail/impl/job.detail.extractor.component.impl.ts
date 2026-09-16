@@ -10,6 +10,7 @@ import { SkillsMatchDto } from 'src/jobs/dto/helpers/skill.match.dto';
 import { EmploymentType } from 'src/jobs/enum/employment.yype';
 import { WorkplaceType } from 'src/jobs/enum/workplace.type';
 import { JobDetailExtractorComponent } from '../contract/job.detail.extractor.component';
+import { HumanBehaviorService } from '../../../common/human-behavior.service';
 
 @Injectable()
 export class JobDetailExtractorComponentImpl
@@ -18,6 +19,8 @@ export class JobDetailExtractorComponentImpl
   private readonly logger = new Logger(JobDetailExtractorComponentImpl.name);
 
   private readonly SCRAPER_VERSION = '1.0.0';
+
+  constructor(private readonly human: HumanBehaviorService) {}
 
   async extractJob(page: Page, url: string): Promise<JobPostingDto | null> {
     this.logger.log(`Extracting job: ${url}`);
@@ -35,6 +38,9 @@ export class JobDetailExtractorComponentImpl
         '.job-details-jobs-unified-top-card__content--two-pane',
         { timeout: 30_000 },
       );
+
+      // Pausa humana antes de leer el DOM.
+      await this.human.wait();
 
       return this.readJobFromDom(page, url);
     } catch (error) {
@@ -70,6 +76,9 @@ export class JobDetailExtractorComponentImpl
         },
         { timeout: 30_000 },
       );
+
+      // Pausa humana antes de leer el DOM del panel.
+      await this.human.wait();
 
       return this.readJobFromDom(page, url);
     } catch (error) {
