@@ -1,9 +1,21 @@
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobRecommendationController } from '../controller/job.recommendation.controller';
 import { McpClientModule } from '../../mcp-client/mcp-client.module';
 import { RedisModule } from '../../common/redis/redis.module';
+import { NestLoggerAdapter } from '../../common/logger/nest-logger.adapter';
+import { FillFormUseCase } from '@aplicafacil/core/application';
+import {
+  AI_COMPLETION_PORT,
+  CACHE_PORT,
+  LOGGER_PORT,
+  type AiCompletionPort,
+  type CachePort,
+  type LoggerPort,
+} from '@aplicafacil/core/application';
+import { McpClientService } from '../../mcp-client/mcp-client.service';
+import { RedisService } from '../../common/redis/redis.service';
 
 import { JobRecommendationService } from '../service/contract/job.recommendation.service';
 import { JobRecommendationServiceImpl } from '../service/impl/job.recommendation.service';
@@ -33,6 +45,34 @@ import { JobModel } from '../models/job.model';
     {
       provide: 'ValidateJobsService',
       useClass: ValidateJobsServiceImpl,
+    },
+    {
+      provide: FillFormUseCase,
+      inject: [AI_COMPLETION_PORT, CACHE_PORT, LOGGER_PORT, ConfigService],
+      useFactory: (
+        ai: AiCompletionPort,
+        cache: CachePort,
+        logger: LoggerPort,
+        config: ConfigService,
+      ) =>
+        new FillFormUseCase(
+          ai,
+          cache,
+          logger,
+          Number(config.get<string>('REDIS_ETAG_TTL')) || 3600,
+        ),
+    },
+    {
+      provide: AI_COMPLETION_PORT,
+      useExisting: McpClientService,
+    },
+    {
+      provide: CACHE_PORT,
+      useExisting: RedisService,
+    },
+    {
+      provide: LOGGER_PORT,
+      useFactory: () => new NestLoggerAdapter('FillFormUseCase'),
     },
   ],
   exports: ['JobsService', 'ValidateJobsService'],

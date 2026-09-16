@@ -1,5 +1,5 @@
-import { FieldDto } from "./field.dto.js";
-import { JobMetadataDto } from "./job.metadata.dto.js";
+import { FieldDto } from './field.dto.js';
+import { JobMetadataDto } from './job.metadata.dto.js';
 
 export class FillFormRequestDto {
   url!: string;                 // URL de la vacante

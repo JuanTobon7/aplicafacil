@@ -1,26 +1,4 @@
-export interface FieldDto {
-  name: string;
-  label: string;
-  type: string;
-  required: boolean;
-  placeholder?: string;
-  options?: Array<{ value: string; label: string }>;
-}
-
-export interface JobMetadataDto {
-  title: string;
-  company: string;
-  location: string;
-  workplaceType?: string;
-  description: string;
-}
-
-export interface FillFormRequestDto {
-  url: string;
-  title: string;
-  fields: FieldDto[];
-  metadata: JobMetadataDto;
-}
+import { FillFormRequestDto } from '../domain/job/fill.form.request.dto.js';
 
 export const FILL_FORM_SYSTEM = `
 Eres un asistente experto en completar formularios de aplicación laboral.
@@ -49,7 +27,7 @@ export const buildFillFormPrompt = (body: FillFormRequestDto): string => {
 
   // Filtramos las opciones de selects muy largos (ej: lista de 200 países)
   // para no desperdiciar tokens — solo mandamos las primeras 5 + la relevante
-  const sanitizedFields = fields.map((f: any) => {
+  const sanitizedFields = fields.map(f => {
     if (f.type === 'select' && f.options && f.options.length > 10) {
       // Detecta si es lista de países por el label del campo
       const isPaisField =
@@ -59,7 +37,7 @@ export const buildFillFormPrompt = (body: FillFormRequestDto): string => {
 
       if (isPaisField) {
         // Solo manda Colombia y las primeras 3 para dar contexto del formato
-        const colombia = f.options.find((o: any) =>
+        const colombia = f.options.find(o =>
           o.label.toLowerCase().includes('colombia'),
         );
         const sample = f.options.slice(0, 3);
@@ -92,7 +70,7 @@ export const buildFillFormPrompt = (body: FillFormRequestDto): string => {
 
     ## Campos del formulario a completar (${sanitizedFields.length} campos)
     ${sanitizedFields
-      .map((f: any, i: number) => {
+      .map((f, i) => {
         return `
     Campo ${i + 1}:
     name:      "${f.name}"
@@ -103,7 +81,7 @@ export const buildFillFormPrompt = (body: FillFormRequestDto): string => {
     ${
       f.options?.length
         ? `opciones disponibles:\n${f.options
-            .map((o: any) => `    - value: "${o.value}" | label: "${o.label}"`)
+            .map(o => `    - value: "${o.value}" | label: "${o.label}"`)
             .join('\n')}`
         : ''
     }

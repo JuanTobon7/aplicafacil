@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { ProfileResponseDto } from 'src/profiles/dto/profile.response.dto';
+import { ProfileResponseDto } from '@aplicafacil/core/domain';
+import { AiCompletionPort } from '@aplicafacil/core/application';
 
 export interface FillFormRequest {
   system: string;
@@ -29,7 +30,7 @@ export interface EmbeddingResponse {
 }
 
 @Injectable()
-export class McpClientService {
+export class McpClientService implements AiCompletionPort {
   private readonly logger = new Logger(McpClientService.name);
   private readonly mcpServerUrl: string;
 
@@ -40,6 +41,60 @@ export class McpClientService {
     this.mcpServerUrl =
       this.configService.get<string>('MCP_SERVER_URL') ||
       'http://localhost:3001';
+  }
+
+  /**
+   * Implementa AiCompletionPort.
+   *
+   * - Sin `data`: delega en /tools/fill-form (formularios).
+   * - Con `data`: delega en /tools/profile/cv/extract (extracción de CV).
+   *
+   * Devuelve SIEMPRE el texto crudo del LLM (string), para que los use cases
+   * del core hagan el parseo.
+   */
+  async complete(request: {
+    system: string;
+    prompt: string;
+    data?: string;
+  }): Promise<string> {
+    if (request.data !== undefined) {
+      return this.completeWithData({
+        system: request.system,
+        prompt: request.prompt,
+        data: request.data,
+      });
+    }
+    return this.fillForm(request);
+  }
+
+  private async completeWithData(request: {
+    system: string;
+    prompt: string;
+    data: string;
+  }): Promise<string> {
+    try {
+      this.logger.debug(
+        `Calling MCP server at ${this.mcpServerUrl}/tools/profile/cv/extract`,
+      );
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.mcpServerUrl}/tools/profile/cv/extract`,
+          request,
+          {
+            timeout: 30000,
+          },
+        ),
+      );
+
+      const data = response.data;
+      if (typeof data === 'string') return data;
+      return JSON.stringify(data);
+    } catch (error) {
+      this.logger.error(
+        `Error calling complete (with data) from MCP server: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
   }
 
   /**

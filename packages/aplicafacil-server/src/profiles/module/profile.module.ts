@@ -16,6 +16,15 @@ import { ProfileCvService } from '../service/contract/profile.cv.service';
 import { StorageModule } from 'src/components/storage.media/module/storage.module';
 import { McpClientModule } from 'src/mcp-client';
 import { AiModule } from 'src/ai/module/ai.module';
+import { NestLoggerAdapter } from 'src/common/logger/nest-logger.adapter';
+import {
+  ExtractCvUseCase,
+  AI_COMPLETION_PORT,
+  LOGGER_PORT,
+  type AiCompletionPort,
+  type LoggerPort,
+} from '@aplicafacil/core/application';
+import { McpClientService } from 'src/mcp-client/mcp-client.service';
 
 @Module({
   imports: [
@@ -44,6 +53,20 @@ import { AiModule } from 'src/ai/module/ai.module';
     {
       provide: ProfileCvService,
       useClass: ProfileCvServiceImpl,
+    },
+    {
+      provide: ExtractCvUseCase,
+      inject: [AI_COMPLETION_PORT, LOGGER_PORT],
+      useFactory: (ai: AiCompletionPort, logger: LoggerPort) =>
+        new ExtractCvUseCase(ai, logger),
+    },
+    {
+      provide: AI_COMPLETION_PORT,
+      useExisting: McpClientService,
+    },
+    {
+      provide: LOGGER_PORT,
+      useFactory: () => new NestLoggerAdapter('ExtractCvUseCase'),
     },
   ],
   exports: [ProfileService],

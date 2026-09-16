@@ -11,11 +11,15 @@ import {
   infoRoute,
 } from '../http/routes.js';
 import { logger } from '../logger/logger.js';
+import { AiProviderFactory } from '@aplicafacil/core/infrastructure';
 
 /**
  * Create and configure Express app with middleware and routes
+ *
+ * @param aiProviderFactory Fábrica de proveedores de IA (composition root).
+ *                          Las rutas NUNCA instancian adapters directamente.
  */
-export function createExpressApp(): Express {
+export function createExpressApp(aiProviderFactory: AiProviderFactory): Express {
   const app = express();
 
   // ====================================
@@ -41,13 +45,13 @@ export function createExpressApp(): Express {
   app.get('/', infoRoute);
   app.get('/health', healthRoute);
 
-  // Tools endpoints
-  app.post('/tools/fill-form', fillFormRoute);
-  app.post('/tools/complete', completeRoute);
-  app.post('/tools/embeddings', embeddingsRoute);
+  // Tools endpoints (reciben la fábrica por inyección)
+  app.post('/tools/fill-form', fillFormRoute(aiProviderFactory));
+  app.post('/tools/complete', completeRoute(aiProviderFactory));
+  app.post('/tools/embeddings', embeddingsRoute(aiProviderFactory));
   app.get('/tools/search-profile', searchProfileRoute);
   app.post('/tools/search-people', searchPeopleRoute);
-  app.post('/tools/profile/cv/extract', extractProfileFromCvRoute);
+  app.post('/tools/profile/cv/extract', extractProfileFromCvRoute(aiProviderFactory));
 
   // ====================================
   // ERROR HANDLING

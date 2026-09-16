@@ -1,4 +1,4 @@
-import { SkillsMatchDto } from "./skill.match.dto.js";
+import { SkillsMatchDto } from './skill.match.dto.js';
 
 export class JobMetadataDto {
   title!: string;               // "Desarrollador Java"

@@ -1,4 +1,4 @@
-import { PeopleDto } from "../dto/people.dto.js";
+import { PeopleDto } from "@aplicafacil/core/domain";
 
 export interface AiPeopleTool {
     getPeopleById(id: string): Promise<PeopleDto>;

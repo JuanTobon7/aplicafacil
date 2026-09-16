@@ -3,15 +3,14 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 
 import { ProfileCvService } from "../contract/profile.cv.service";
-import { ProfileResponseDto } from "src/profiles/dto/profile.response.dto";
+import { ProfileResponseDto } from "@aplicafacil/core/domain";
+import { ExtractCvUseCase } from "@aplicafacil/core/application";
 
 import { ProfileModel } from "src/profiles/models/profiles.model";
 import { CvsModel } from "src/profiles/models/cvs.model";
 
 import { FactoryStorageMedia } from "src/components/storage.media/contract/storage.factory.media";
 import { FileInterceptorFactory } from "src/components/storage.media/impl/file.factory.interceptor";
-import { FillCvRequest, McpClientService } from "src/mcp-client";
-import { CV_SYSTEM_EXTRACT } from "src/mcp-client/prompts/cv.prompt";
 
 @Injectable()
 export class ProfileCvServiceImpl
@@ -22,7 +21,7 @@ export class ProfileCvServiceImpl
     private readonly profileRepository: Repository<ProfileModel>,
 
     private readonly storageFactory: FactoryStorageMedia,
-    private readonly mcp: McpClientService
+    private readonly extractCvUseCase: ExtractCvUseCase
   ) {}
 
   async uploadCv(
@@ -128,14 +127,8 @@ export class ProfileCvServiceImpl
 
     const reduced =
       await interceptor.reduceFile(sanitized);
-    
-    const payload:FillCvRequest = {
-      prompt: CV_SYSTEM_EXTRACT,
-      system: "You are a system that extracts structured data from CVs.",
-      data: reduced,
-    };
 
-    const response : ProfileResponseDto = await this.mcp.getProfileDataFromCv(payload)
-    return response;
+    // La extracción estructurada (prompt + parseo) vive en el core.
+    return this.extractCvUseCase.execute(reduced);
   }
 }

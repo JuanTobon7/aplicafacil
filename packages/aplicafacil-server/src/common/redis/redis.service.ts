@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { CachePort } from '@aplicafacil/core/application';
 
 /**
  * Wrapper de Redis con degradación silenciosa.
@@ -8,9 +9,12 @@ import Redis from 'ioredis';
  * Si Redis no está disponible, todas las operaciones devuelven null/vacío
  * sin lanzar excepciones: el flujo de recomendaciones continúa llamando al LLM
  * como si no hubiera caché.
+ *
+ * Implementa CachePort (capa de aplicación) para que los use cases del core
+ * puedan usar caché sin depender de Redis.
  */
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService implements OnModuleDestroy, CachePort {
   private readonly logger = new Logger(RedisService.name);
   private readonly client: Redis | null;
   private connected = false;

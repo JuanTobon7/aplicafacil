@@ -1,4 +1,4 @@
-import { FieldOptionDto } from "./field.option.dto.js";
+import { FieldOptionDto } from './field.option.dto.js';
 
 export class FieldDto {
   label!: string;
