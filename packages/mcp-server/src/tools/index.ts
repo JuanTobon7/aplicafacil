@@ -65,10 +65,5 @@ toolsBank.register(
     AiProfileTool.getProfilesByUserId.bind(AiProfileTool),
 );
 
-toolsBank.register(
-    "get recommendation form by profile id",
-    AiProfileTool.getRecommendationForm.bind(AiProfileTool),
-);
-
 export {toolsBank};
 

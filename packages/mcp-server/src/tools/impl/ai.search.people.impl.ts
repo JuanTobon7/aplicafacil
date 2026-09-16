@@ -1,6 +1,6 @@
 import { ClientPeople } from "../../client/client.people.js";
 import { AiPeopleTool } from "../contract/ai.search.people.js";
-import { PeopleDto } from "../dto/people.dto.js";
+import { PeopleDto } from "@aplicafacil/core/domain";
 
 export class SearchPeopleToolImpl implements AiPeopleTool {
     constructor(

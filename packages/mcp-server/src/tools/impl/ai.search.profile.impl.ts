@@ -1,9 +1,7 @@
 import { ClientPeople } from "../../client/client.people.js";
 import { ClientProfile } from "../../client/client.profile.js";
 import { AiProfileTool } from "../contract/ai.search.profile.js";
-import { ProfileVectorDto } from "../dto/dto.vector.profile.js";
-import { PeopleDto } from "../dto/people.dto.js";
-import { FillFormRequestDto } from "../dto/profile.dto.js";
+import { ProfileVectorDto } from "@aplicafacil/core/domain";
 
 export class AiSearchProfileToolImpl implements AiProfileTool {
 
@@ -29,14 +27,5 @@ export class AiSearchProfileToolImpl implements AiProfileTool {
     async getProfilesByUserId(userId: string): Promise<ProfileVectorDto[]> {
 
         return await this.clientProfile.getProfilesByUserId(userId);
-    }
-
-    async getRecommendationForm(
-        profile: ProfileVectorDto,
-        form: FillFormRequestDto
-    ): Promise<string> 
-    {
-        const personInfo: PeopleDto = await this.clientPeople.getPeopleById(profile.id);
-        
     }
 }

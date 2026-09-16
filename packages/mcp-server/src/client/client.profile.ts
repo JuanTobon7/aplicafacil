@@ -1,4 +1,4 @@
-import { ProfileVectorDto } from "../tools/dto/dto.vector.profile.js";
+import { ProfileVectorDto } from "@aplicafacil/core/domain";
 import { ClientBackend } from "./client.backend.js";
 
 export class ClientProfile {

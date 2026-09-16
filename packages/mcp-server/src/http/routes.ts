@@ -1,68 +1,72 @@
 import { Request, Response } from 'express';
-import { OpenRouterAdapter } from '../ai/adapter/impl/open.ai.adapter.js';
 import { logger } from '../logger/logger.js';
 import { toolsBank } from '../tools/index.js';
 import { AiProfileTool } from '../tools/contract/ai.search.profile.js';
+import { AiProviderFactory } from '@aplicafacil/core/infrastructure';
 
 /**
  * POST /tools/fill-form
- * Completa campos de formulario usando IA
+ * Completa campos de formulario usando IA.
+ *
+ * El proveedor de IA se obtiene de la fábrica (composition root),
+ * nunca se instancia aquí.
  */
-export async function fillFormRoute(req: Request, res: Response) {
-  const requestId = `${Date.now()}-${Math.random()}`;
-  logger.debug(`[${requestId}] 📝 /tools/fill-form request started`, {
-    bodySize: JSON.stringify(req.body).length,
-  });
+export function fillFormRoute(aiProviderFactory: AiProviderFactory) {
+  return async function handler(req: Request, res: Response) {
+    const requestId = `${Date.now()}-${Math.random()}`;
+    logger.debug(`[${requestId}] 📝 /tools/fill-form request started`, {
+      bodySize: JSON.stringify(req.body).length,
+    });
 
-  try {
-    const { system, prompt } = req.body;
+    try {
+      const { system, prompt } = req.body;
 
-    if (!system || !prompt) {
-      logger.warn(`[${requestId}] Missing required fields`, {
-        hasSystem: !!system,
-        hasPrompt: !!prompt,
+      if (!system || !prompt) {
+        logger.warn(`[${requestId}] Missing required fields`, {
+          hasSystem: !!system,
+          hasPrompt: !!prompt,
+        });
+        return res.status(400).json({
+          error: 'Missing required fields: system and prompt',
+        });
+      }
+
+      const aiProvider = aiProviderFactory.getProvider();
+
+      logger.debug(
+        `[${requestId}] Calling complete with prompt size: ${prompt.length}`
+      );
+      const result = await aiProvider.complete({ system, prompt });
+
+      logger.debug(
+        `[${requestId}] Received response, size: ${result.length} chars`
+      );
+
+      // Validate JSON response
+      const parsed = JSON.parse(result);
+      logger.success(`[${requestId}] Successfully parsed ${parsed.length} fields`, {
+        fields: parsed.map((f: any) => ({
+          name: f.fieldName,
+          confidence: f.confidence,
+          requiresReview: f.requires_review,
+        })),
       });
-      return res.status(400).json({
-        error: 'Missing required fields: system and prompt',
+
+      res.json({
+        content: [
+          {
+            type: 'text',
+            text: result,
+          },
+        ],
+      });
+    } catch (error) {
+      logger.error(`[${requestId}] Error in /tools/fill-form`, error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-
-    logger.debug(`[${requestId}] Creating OpenRouter adapter...`);
-    const aiProvider = new OpenRouterAdapter();
-
-    logger.debug(
-      `[${requestId}] Calling fillForm with prompt size: ${prompt.length}`
-    );
-    const result = await aiProvider.fillForm({ system, prompt });
-
-    logger.debug(
-      `[${requestId}] Received response, size: ${result.length} chars`
-    );
-
-    // Validate JSON response
-    const parsed = JSON.parse(result);
-    logger.success(`[${requestId}] Successfully parsed ${parsed.length} fields`, {
-      fields: parsed.map((f: any) => ({
-        name: f.fieldName,
-        confidence: f.confidence,
-        requiresReview: f.requires_review,
-      })),
-    });
-
-    res.json({
-      content: [
-        {
-          type: 'text',
-          text: result,
-        },
-      ],
-    });
-  } catch (error) {
-    logger.error(`[${requestId}] Error in /tools/fill-form`, error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
+  };
 }
 
 /**
@@ -71,89 +75,91 @@ export async function fillFormRoute(req: Request, res: Response) {
  * cruda del LLM, SIN asumir que es un array (a diferencia de /tools/fill-form).
  * Útil para prompts que devuelven objetos JSON (p.ej. parámetros de búsqueda).
  */
-export async function completeRoute(req: Request, res: Response) {
-  const requestId = `${Date.now()}-${Math.random()}`;
-  logger.debug(`[${requestId}] 📝 /tools/complete request started`, {
-    bodySize: JSON.stringify(req.body).length,
-  });
+export function completeRoute(aiProviderFactory: AiProviderFactory) {
+  return async function handler(req: Request, res: Response) {
+    const requestId = `${Date.now()}-${Math.random()}`;
+    logger.debug(`[${requestId}] 📝 /tools/complete request started`, {
+      bodySize: JSON.stringify(req.body).length,
+    });
 
-  try {
-    const { system, prompt } = req.body;
+    try {
+      const { system, prompt } = req.body;
 
-    if (!system || !prompt) {
-      logger.warn(`[${requestId}] Missing required fields`, {
-        hasSystem: !!system,
-        hasPrompt: !!prompt,
+      if (!system || !prompt) {
+        logger.warn(`[${requestId}] Missing required fields`, {
+          hasSystem: !!system,
+          hasPrompt: !!prompt,
+        });
+        return res.status(400).json({
+          error: 'Missing required fields: system and prompt',
+        });
+      }
+
+      const aiProvider = aiProviderFactory.getProvider();
+
+      logger.debug(
+        `[${requestId}] Calling complete with prompt size: ${prompt.length}`
+      );
+      const result = await aiProvider.complete({ system, prompt });
+
+      logger.debug(
+        `[${requestId}] Received response, size: ${result.length} chars`
+      );
+
+      res.json({
+        content: [
+          {
+            type: 'text',
+            text: result,
+          },
+        ],
       });
-      return res.status(400).json({
-        error: 'Missing required fields: system and prompt',
+    } catch (error) {
+      logger.error(`[${requestId}] Error in /tools/complete`, error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-
-    logger.debug(`[${requestId}] Creating OpenRouter adapter...`);
-    const aiProvider = new OpenRouterAdapter();
-
-    logger.debug(
-      `[${requestId}] Calling complete with prompt size: ${prompt.length}`
-    );
-    const result = await aiProvider.fillForm({ system, prompt });
-
-    logger.debug(
-      `[${requestId}] Received response, size: ${result.length} chars`
-    );
-
-    res.json({
-      content: [
-        {
-          type: 'text',
-          text: result,
-        },
-      ],
-    });
-  } catch (error) {
-    logger.error(`[${requestId}] Error in /tools/complete`, error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
+  };
 }
 
 /**
  * POST /tools/embeddings
  * Obtiene embeddings de texto
  */
-export async function embeddingsRoute(req: Request, res: Response) {
-  const requestId = `${Date.now()}-${Math.random()}`;
-  logger.info(`[${requestId}] 🧮 /tools/embeddings request started`);
+export function embeddingsRoute(aiProviderFactory: AiProviderFactory) {
+  return async function handler(req: Request, res: Response) {
+    const requestId = `${Date.now()}-${Math.random()}`;
+    logger.info(`[${requestId}] 🧮 /tools/embeddings request started`);
 
-  try {
-    const { data } = req.body;
+    try {
+      const { data } = req.body;
 
-    if (!data) {
-      logger.warn(`[${requestId}] Missing data field`);
-      return res.status(400).json({
-        error: 'Missing required field: data',
+      if (!data) {
+        logger.warn(`[${requestId}] Missing data field`);
+        return res.status(400).json({
+          error: 'Missing required field: data',
+        });
+      }
+
+      const aiProvider = aiProviderFactory.getProvider();
+
+      logger.debug(`[${requestId}] Requesting embedding for data...`);
+      const embedding = await aiProvider.getEmbedding(data);
+
+      logger.success(`[${requestId}] Embedding generated`, {
+        dimensions: embedding.length,
+        sampleValues: embedding.slice(0, 5),
+      });
+
+      res.json({ embedding });
+    } catch (error) {
+      logger.error(`[${requestId}] Error in /tools/embeddings`, error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-
-    logger.debug(`[${requestId}] Creating OpenRouter adapter...`);
-    const aiProvider = new OpenRouterAdapter();
-
-    logger.debug(`[${requestId}] Requesting embedding for data...`);
-    const embedding = await aiProvider.getEmbedding(data);
-
-    logger.success(`[${requestId}] Embedding generated`, {
-      dimensions: embedding.length,
-      sampleValues: embedding.slice(0, 5),
-    });
-
-    res.json({ embedding });
-  } catch (error) {
-    logger.error(`[${requestId}] Error in /tools/embeddings`, error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
+  };
 }
 
 /**
@@ -243,18 +249,46 @@ export async function searchPeopleRoute(req: Request, res: Response) {
   }
 }
 
-export async function extractProfileFromCvRoute(req: Request, res: Response) {
-  const requestId = `${Date.now()}-${Math.random()}`;
-  logger.info(`[${requestId}] 📄 /tools/extract-profile-from-cv request started`, {
-    body: req.body,
-  });
-  const aiProvider = new OpenRouterAdapter();
-  const result = await aiProvider.extractProfileFromCv(req.body);
-  logger.success(`[${requestId}] Profile extraction completed`, {
-    resultType: typeof result,
-  });
-  logger.debug(`[${requestId}] Extraction result:`, result);
-  res.json(result);
+/**
+ * POST /tools/profile/cv/extract
+ * Extrae un perfil estructurado del texto de un CV.
+ */
+export function extractProfileFromCvRoute(aiProviderFactory: AiProviderFactory) {
+  return async function handler(req: Request, res: Response) {
+    const requestId = `${Date.now()}-${Math.random()}`;
+    logger.info(`[${requestId}] 📄 /tools/profile/cv/extract request started`, {
+      body: req.body,
+    });
+
+    try {
+      const { system, prompt, data } = req.body;
+
+      if (!system || !prompt || !data) {
+        logger.warn(`[${requestId}] Missing required fields`, {
+          hasSystem: !!system,
+          hasPrompt: !!prompt,
+          hasData: !!data,
+        });
+        return res.status(400).json({
+          error: 'Missing required fields: system, prompt and data',
+        });
+      }
+
+      const aiProvider = aiProviderFactory.getProvider();
+      const result = await aiProvider.complete({ system, prompt, data });
+
+      logger.success(`[${requestId}] Profile extraction completed`, {
+        resultType: typeof result,
+      });
+      logger.debug(`[${requestId}] Extraction result:`, result);
+      res.json(result);
+    } catch (error) {
+      logger.error(`[${requestId}] Error in /tools/profile/cv/extract`, error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  };
 }
 
 /**

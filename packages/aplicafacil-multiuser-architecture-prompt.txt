@@ -1,0 +1,1129 @@
+APLICAFACIL SERVER — MULTI-USER / MULTI-PROFILE LINKEDIN AUTOMATION REFACTOR
+
+You are a senior backend architect and NestJS/TypeScript engineer.
+
+I am working on `aplicafacil-server`, a NestJS backend that automates LinkedIn job discovery and job applications using Puppeteer.
+
+I want to refactor the current LinkedIn automation architecture to properly support:
+
+- Multiple users
+- Multiple professional profiles per user
+- Multiple LinkedIn accounts per user (future-proof)
+- Different automation configurations per profile
+- Concurrent processing of different users
+- Preventing concurrent automation on the same LinkedIn account
+- Redis-backed queues using BullMQ
+- Stateless workers
+- Reliable job/application state transitions
+- Retry/failure handling
+- Persistence in PostgreSQL
+- Keeping Puppeteer/LinkedIn infrastructure separated from application orchestration
+
+DO NOT implement a microservices architecture yet. Keep everything inside the existing NestJS backend. The goal is a modular monolith with queue-driven workers.
+
+==================================================
+CURRENT ARCHITECTURE
+==================================================
+
+The backend currently contains:
+
+- Auth
+- People
+- Profiles
+- JobRecommendation
+- LinkedInAutomation
+- PostgreSQL + TypeORM
+- Redis
+- Puppeteer
+- MCP server for AI operations
+
+Current LinkedIn automation components include:
+
+- BrowserManager
+- LinkedInLoginComponent
+- JobSearchComponent
+- JobDetailExtractorComponent
+- EasyApplyComponent
+- JobWorkerAutomation
+- JobsService
+- ValidateJobsService
+
+The current worker is approximately:
+
+```ts
+@Injectable()
+export class JobWorkerAutomation implements OnApplicationBootstrap {
+
+    private readonly logger = new Logger(JobWorkerAutomation.name);
+
+    params: LinkedInSearchParams;
+
+    private readonly MAX_JOBS_TO_APPLY = 10;
+
+    credentialsLinkdln: {
+        email: string,
+        password: string
+    } = this.getCredentialsLinkdln();
+
+    constructor(
+        @Inject('ScrapingLinkldnService')
+        private readonly scrapingLinkldnService: ScrapingLinkldnService,
+
+        @Inject('ValidateJobsService')
+        private readonly validateJobsService: ValidateJobsService,
+
+        @Inject('JobsService')
+        private readonly jobsService: JobsService,
+
+        @Inject('UserProfileService')
+        private readonly userProfileService: ProfileService
+    ) {
+
+        const userId = getenvironmentVariable();
+
+        const profile = userProfileService.getProfilesById();
+
+        this.params = new LinkedInSearchParams(
+            '1_week',
+            'Colombia',
+            true,
+        );
+    }
+
+    async onApplicationBootstrap(): Promise<void> {
+        this.logger.log('Server started. Running initial job automation...');
+
+        try {
+            await this.startJobAutomation();
+        } catch (error) {
+            this.logger.error(`Initial job automation failed: ${error}`);
+        }
+    }
+
+    @Cron(CronExpression.EVERY_10_MINUTES)
+    async startJobAutomation() {
+
+        await this.scrapingLinkdlnService
+            .openLinkdlnProfile(this.credentialsLinkdln);
+
+        const searchJobsToApply =
+            await this.scrapingLinkdlnService
+                .getJobsToApply(this.params);
+
+        const validJobs =
+            await this.validateJobsService
+                .validateJobsApplied(
+                    this.jobsService,
+                    searchJobsToApply
+                );
+
+        const jobsToApplyLimited =
+            this.extractNumberOfJobsToApply(validJobs);
+
+        await this.validateJobsService
+            .markJobsAsPending(
+                this.jobsService,
+                jobsToApplyLimited
+            );
+    }
+
+    @Cron(CronExpression.EVERY_10_MINUTES)
+    async applyToPendingJobs() {
+
+        await this.scrapingLinkdlnService
+            .openLinkdlnProfile(this.credentialsLinkdln);
+
+        const getPendingJobs =
+            await this.jobsService
+                .getJobsByStatus(StatusApplyment.PENDING);
+
+        // application logic incomplete
+    }
+}
+```
+
+This implementation currently assumes:
+
+- One global LinkedIn account
+- One global search configuration
+- One implicit user
+- One implicit profile
+- No queue isolation
+- No execution context
+- No concurrency control
+- No reliable job claiming/locking
+
+I want to remove those assumptions.
+
+==================================================
+TARGET DOMAIN MODEL
+==================================================
+
+Use the following conceptual model.
+
+USER
+
+One user can have multiple professional profiles.
+
+```text
+User
+ ├── Profile A
+ ├── Profile B
+ └── Profile C
+```
+
+PROFILE
+
+Represents the professional identity used for applications.
+
+Examples:
+
+- Java Backend Developer
+- Full Stack Developer
+- AI Engineer
+
+A Profile belongs to exactly one User.
+
+```text
+Profile
+---------
+id
+userId
+title
+summary
+education
+experience
+skills
+...
+```
+
+LINKEDIN ACCOUNT
+
+Represents the LinkedIn account used by Puppeteer.
+
+It belongs to a User.
+
+```text
+LinkedInAccount
+----------------
+id
+userId
+status
+session/cookies information
+lastLoginAt
+...
+```
+
+Do NOT use environment variables for user LinkedIn credentials.
+
+The current:
+
+```ts
+process.env.LINKEDIN_EMAIL
+process.env.LINKEDIN_PASSWORD
+```
+
+approach must be removed from the multi-user automation flow.
+
+If credentials are persisted, they must be protected appropriately.
+Prefer reusable authenticated browser sessions/cookies where the existing architecture permits it.
+
+AUTOMATION CONFIGURATION
+
+This is the key domain concept.
+
+An automation configuration connects:
+
+User
+Profile
+LinkedInAccount
+Search parameters
+Application settings
+
+Conceptually:
+
+```text
+AutomationConfig
+-----------------
+id
+userId
+profileId
+linkedinAccountId
+
+enabled
+
+timeFilter
+location
+remote
+
+maxApplicationsPerRun
+
+createdAt
+updatedAt
+```
+
+Example:
+
+```text
+User A
+ ├── Profile: Java Backend
+ ├── Profile: Full Stack
+ │
+ └── LinkedIn Account A
+      │
+      ├── AutomationConfig #1
+      │     └── Java Backend
+      │
+      └── AutomationConfig #2
+            └── Full Stack
+```
+
+The same LinkedIn account can eventually have multiple automation configurations, but the system MUST prevent simultaneous browser automation against the same LinkedIn account.
+
+==================================================
+IMPORTANT ARCHITECTURAL PRINCIPLE
+==================================================
+
+The worker must NOT belong to a user.
+
+Workers must be stateless.
+
+Do NOT create:
+
+```ts
+worker.userId
+worker.profileId
+worker.credentials
+worker.params
+```
+
+Instead, every queue job must contain an execution identifier such as:
+
+```ts
+{
+    automationId: string
+}
+```
+
+The worker retrieves the current automation context from the database.
+
+Conceptually:
+
+```text
+AutomationConfig
+       │
+       ▼
+AutomationExecution
+       │
+       ├── userId
+       ├── profileId
+       └── linkedinAccountId
+              │
+              ▼
+           Worker
+```
+
+The worker is generic.
+
+==================================================
+QUEUE ARCHITECTURE
+==================================================
+
+Use Redis + BullMQ.
+
+Do not perform the complete automation directly inside a @Cron() method.
+
+The scheduler should ONLY dispatch work.
+
+Architecture:
+
+```text
+Cron Scheduler
+      │
+      ▼
+Find enabled AutomationConfigs
+      │
+      ├── Automation A → Queue
+      ├── Automation B → Queue
+      ├── Automation C → Queue
+      └── Automation D → Queue
+                    │
+                    ▼
+              Redis / BullMQ
+                    │
+          ┌─────────┴─────────┐
+          ▼                   ▼
+   Search Job Worker   Application Worker
+          │                   │
+          ▼                   ▼
+      Puppeteer           Puppeteer
+          │                   │
+          ▼                   ▼
+       LinkedIn            LinkedIn
+```
+
+Create at least two logical queues:
+
+```text
+linkedin-search
+linkedin-application
+```
+
+Use appropriate job names, for example:
+
+```text
+search-jobs
+apply-job
+```
+
+The scheduler should enqueue:
+
+```ts
+{
+    automationId
+}
+```
+
+Do not serialize complete entities into Redis.
+
+==================================================
+SCHEDULER
+==================================================
+
+Create a dedicated scheduler responsible only for dispatching automation work.
+
+For example:
+
+```ts
+@Injectable()
+export class AutomationScheduler {
+
+    @Cron(CronExpression.EVERY_10_MINUTES)
+    async dispatchAutomations() {
+
+        const automations =
+            await this.automationService
+                .findEnabledAutomations();
+
+        for (const automation of automations) {
+
+            await this.queue.add(
+                'search-jobs',
+                {
+                    automationId: automation.id
+                }
+            );
+        }
+    }
+}
+```
+
+Do NOT put Puppeteer operations in the scheduler.
+
+Do NOT perform LinkedIn login in the scheduler.
+
+Do NOT query LinkedIn from the scheduler.
+
+==================================================
+SEARCH WORKER
+==================================================
+
+Create a worker/processor responsible for job discovery.
+
+Its flow should be:
+
+```text
+automationId
+      │
+      ▼
+Load AutomationConfig
+      │
+      ├── userId
+      ├── profileId
+      └── linkedinAccountId
+      │
+      ▼
+Load Profile
+      │
+      ▼
+Load LinkedInAccount
+      │
+      ▼
+Build LinkedInSearchParams
+      │
+      ▼
+Authenticate LinkedIn
+      │
+      ▼
+Search jobs
+      │
+      ▼
+Extract job details
+      │
+      ▼
+Validate duplicates
+      │
+      ▼
+Persist jobs
+      │
+      ▼
+Create JobApplication records
+```
+
+The worker must never use a hardcoded:
+
+```ts
+'Colombia'
+'1_week'
+true
+```
+
+These values must come from AutomationConfig.
+
+==================================================
+APPLICATION WORKER
+==================================================
+
+Create a separate worker for applying to jobs.
+
+Flow:
+
+```text
+JobApplication
+      │
+      ▼
+PENDING
+      │
+      ▼
+PROCESSING
+      │
+      ▼
+Load user/profile/LinkedIn account
+      │
+      ▼
+Open authenticated LinkedIn session
+      │
+      ▼
+Navigate to job
+      │
+      ▼
+Easy Apply
+      │
+      ▼
+Use profile/recommendation system
+      │
+      ▼
+Submit application
+      │
+      ▼
+APPLIED
+```
+
+If something fails:
+
+```text
+PROCESSING
+    │
+    ▼
+FAILED
+```
+
+Include useful failure information.
+
+==================================================
+JOB APPLICATION DOMAIN
+==================================================
+
+Do NOT rely on a global:
+
+```ts
+getJobsByStatus(PENDING)
+```
+
+because this becomes unsafe in a multi-user system.
+
+Every application must have ownership/context.
+
+Conceptually:
+
+```text
+Job
+---
+id
+linkedinJobId
+title
+company
+url
+...
+
+JobApplication
+--------------
+id
+jobId
+userId
+profileId
+linkedinAccountId
+status
+attempts
+lastError
+createdAt
+updatedAt
+appliedAt
+```
+
+The system must know:
+
+Who applied?
+Which profile was used?
+Which LinkedIn account was used?
+What was the current state?
+How many attempts happened?
+Why did it fail?
+
+==================================================
+APPLICATION STATUS
+==================================================
+
+Replace the simplistic status model if necessary.
+
+Prefer something like:
+
+```ts
+enum ApplicationStatus {
+    DISCOVERED = 'DISCOVERED',
+    PENDING = 'PENDING',
+    PROCESSING = 'PROCESSING',
+    APPLIED = 'APPLIED',
+    FAILED = 'FAILED',
+    CANNOT_APPLY = 'CANNOT_APPLY',
+}
+```
+
+The important state transition is:
+
+```text
+PENDING
+   ↓
+PROCESSING
+   ↓
+APPLIED
+```
+
+or:
+
+```text
+PROCESSING
+   ↓
+FAILED
+```
+
+A worker must atomically claim an application before processing it.
+
+Two workers must NEVER process the same application simultaneously.
+
+==================================================
+CONCURRENCY
+==================================================
+
+This is extremely important.
+
+The system must prevent two automation jobs from using the same LinkedIn account simultaneously.
+
+Example:
+
+```text
+LinkedInAccount A
+    │
+    ├── Automation A
+    └── Automation B
+```
+
+Automation A and B must NOT execute Puppeteer concurrently against the same LinkedIn account.
+
+Implement an appropriate concurrency/locking strategy using Redis/BullMQ.
+
+The desired rule is:
+
+ONE active LinkedIn automation execution
+PER LinkedInAccount
+
+Different LinkedIn accounts should be able to run concurrently.
+
+Example:
+
+```text
+User A / LinkedIn A → running
+User B / LinkedIn B → running
+User C / LinkedIn C → running
+
+User A / LinkedIn A → second execution MUST WAIT
+```
+
+Use BullMQ job configuration, job IDs, Redis locks, or another appropriate mechanism.
+
+Choose the simplest robust implementation compatible with the current project.
+
+==================================================
+PUPPETEER ARCHITECTURE
+==================================================
+
+Keep these components separated:
+
+```text
+BrowserManager
+LinkedInLoginComponent
+JobSearchComponent
+JobDetailExtractorComponent
+EasyApplyComponent
+```
+
+These are infrastructure components.
+
+They should NOT contain business decisions about:
+
+- which user to process
+- which profile to use
+- which automation to execute
+- whether a job belongs to a user
+
+The worker/orchestration layer decides those things.
+
+The Puppeteer layer should receive the necessary context.
+
+For example:
+
+```ts
+linkedinSearch.search(
+    linkedinAccount,
+    searchParams
+)
+```
+
+rather than reading environment variables internally.
+
+==================================================
+PROFILE USAGE
+==================================================
+
+A Profile represents the professional information used for:
+
+- job recommendations
+- AI form completion
+- CV data
+- LinkedIn application answers
+
+When applying to a job, the worker must use:
+
+```text
+JobApplication.profileId
+```
+
+to determine which professional profile should be used.
+
+This must integrate cleanly with the existing:
+
+JobRecommendationService
+MCP server
+OpenRouter/Gemini
+
+Do not duplicate profile data inside the automation module.
+
+Use the existing ProfileService.
+
+==================================================
+DATABASE RELATIONSHIPS
+==================================================
+
+Review the existing TypeORM entities and implement the necessary relationships.
+
+Target conceptual relationships:
+
+```text
+User 1 ───── N Profile
+
+User 1 ───── N LinkedInAccount
+
+User 1 ───── N AutomationConfig
+
+Profile 1 ── N AutomationConfig
+
+LinkedInAccount 1 ── N AutomationConfig
+
+Job 1 ───── N JobApplication
+
+Profile 1 ── N JobApplication
+
+LinkedInAccount 1 ── N JobApplication
+```
+
+Do not blindly create duplicate tables if equivalent entities already exist.
+
+First inspect the existing project and reuse/refactor existing models where appropriate.
+
+==================================================
+EXISTING SERVICES
+==================================================
+
+Reuse/refactor:
+
+JobsService
+ValidateJobsService
+ProfileService
+ScrapingLinkdlnService
+BrowserManager
+LinkedInLoginComponent
+JobSearchComponent
+JobDetailExtractorComponent
+EasyApplyComponent
+
+Do not rewrite working infrastructure unnecessarily.
+
+Fix architectural boundaries instead.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+A LinkedIn automation failure must NOT crash the NestJS application.
+
+The following must be isolated:
+
+- Login failures
+- Navigation failures
+- LinkedIn DOM changes
+- Job extraction failures
+- Easy Apply failures
+- AI recommendation failures
+- Redis failures
+- Database failures
+
+Use structured logging with identifiers:
+
+```text
+automationId
+userId
+profileId
+linkedinAccountId
+jobId
+applicationId
+```
+
+Example:
+
+```text
+[Automation abc]
+[User xyz]
+[LinkedInAccount l123]
+Searching jobs...
+```
+
+Do not log passwords, tokens, cookies, or other sensitive credentials.
+
+==================================================
+RETRY STRATEGY
+==================================================
+
+Configure reasonable BullMQ retries for transient failures.
+
+For example:
+
+```text
+attempts: 3
+backoff: exponential
+```
+
+But do NOT blindly retry permanent failures such as:
+
+- invalid LinkedIn credentials
+- job no longer available
+- Easy Apply unavailable
+- user profile missing required information
+
+Distinguish transient vs permanent errors.
+
+==================================================
+IDEMPOTENCY
+==================================================
+
+The system must be safe if:
+
+- the scheduler executes twice
+- a queue job is retried
+- the NestJS process restarts
+- a worker crashes
+- Redis temporarily disconnects
+
+Avoid creating duplicate applications.
+
+Use unique constraints where appropriate, for example:
+
+```text
+userId + jobId + profileId
+```
+
+or another key justified by the domain.
+
+Explain the chosen uniqueness strategy before implementing it.
+
+==================================================
+ON APPLICATION BOOTSTRAP
+==================================================
+
+Do NOT automatically run a full LinkedIn automation process directly from:
+
+```ts
+onApplicationBootstrap()
+```
+
+The application startup must not depend on LinkedIn being available.
+
+If an initial automation trigger is desired, enqueue it asynchronously through the scheduler/queue architecture.
+
+The NestJS server must start even if:
+
+- LinkedIn is unavailable
+- Puppeteer fails
+- Redis has temporary problems
+- an automation fails
+
+==================================================
+IMPORTANT
+==================================================
+
+Before modifying code:
+
+1. Inspect the existing project structure.
+2. Inspect existing TypeORM entities.
+3. Inspect existing ProfileService.
+4. Inspect existing JobsService.
+5. Inspect existing ValidateJobsService.
+6. Inspect existing LinkedIn automation components.
+7. Inspect how Redis is currently configured.
+8. Inspect whether BullMQ is already installed.
+9. Inspect existing module dependencies.
+10. Identify what can be reused versus what needs to be introduced.
+
+Do not assume file names or entity structures without inspecting the repository.
+
+==================================================
+IMPLEMENTATION STRATEGY
+==================================================
+
+Implement incrementally.
+
+PHASE 1
+--------
+Create/refactor domain entities and relationships:
+
+- Profile ownership
+- LinkedInAccount
+- AutomationConfig
+- JobApplication ownership/context
+
+PHASE 2
+--------
+Configure BullMQ/Redis correctly in NestJS.
+
+Create:
+
+- linkedin-search queue
+- linkedin-application queue
+
+PHASE 3
+--------
+Create:
+
+- AutomationScheduler
+- SearchJobsProcessor
+- ApplyJobProcessor
+
+PHASE 4
+--------
+Move current JobWorkerAutomation responsibilities into the new architecture.
+
+Remove:
+
+- global LinkedIn credentials
+- global search params
+- global userId
+- direct Puppeteer calls from scheduler
+- global PENDING queries
+
+PHASE 5
+--------
+Implement concurrency protection per LinkedIn account.
+
+PHASE 6
+--------
+Implement retries, idempotency, state transitions and structured logging.
+
+PHASE 7
+--------
+Run TypeScript compilation/tests/lint and fix all architectural/type/runtime errors introduced by the refactor.
+
+==================================================
+IMPORTANT DESIGN CONSTRAINT
+==================================================
+
+Do NOT overengineer.
+
+This is a modular monolith.
+
+Do NOT introduce:
+
+- Kafka
+- RabbitMQ
+- Kubernetes
+- separate microservices
+- event sourcing
+- CQRS unless the existing project already uses them and there is a strong reason
+
+Use:
+
+NestJS
+PostgreSQL
+TypeORM
+Redis
+BullMQ
+Puppeteer
+
+Keep the architecture understandable for a small development team.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+The final architecture should conceptually look like:
+
+```text
+                    ┌─────────────────────┐
+                    │       React         │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      NestJS API     │
+                    │                     │
+                    │ Users               │
+                    │ Profiles            │
+                    │ LinkedIn Accounts   │
+                    │ Automations         │
+                    │ Jobs                │
+                    │ Applications        │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+             ┌─────────────┐       ┌─────────────┐
+             │ PostgreSQL  │       │    Redis    │
+             │             │       │   BullMQ    │
+             └─────────────┘       └──────┬──────┘
+                                          │
+                              ┌───────────┴───────────┐
+                              ▼                       ▼
+                     Search Worker          Application Worker
+                              │                       │
+                              └──────────┬────────────┘
+                                         ▼
+                                      Puppeteer
+                                         │
+                                         ▼
+                                      LinkedIn
+```
+
+And the execution context should always be:
+
+```text
+AutomationConfig
+      ↓
+AutomationExecution / Queue Job
+      ↓
+userId
+profileId
+linkedinAccountId
+      ↓
+Worker
+      ↓
+Puppeteer / LinkedIn
+```
+
+==================================================
+DELIVERABLE
+==================================================
+
+After inspecting the repository, provide:
+
+1. Current architecture problems found.
+2. Proposed architecture.
+3. Entity/relationship changes.
+4. Queue architecture.
+5. Concurrency strategy.
+6. Exact files that need to be created/modified.
+7. Implement the refactor.
+8. Show the important code changes.
+9. Run/build/test the project.
+10. Report any remaining issues.
+
+Do NOT simply give me a theoretical answer.
+
+Actually inspect the repository and implement the architecture incrementally.
+
+When making architectural decisions, prioritize:
+
+1. Correct multi-user isolation
+2. Data consistency
+3. Idempotency
+4. Concurrency safety
+5. Maintainability
+6. Simplicity
+7. Scalability
+
+==================================================
+ADDITIONAL WORKFLOW RULE
+==================================================
+
+Do not modify everything in one massive change.
+
+First inspect and explain the existing architecture and identify the minimum required changes.
+
+Then implement Phase 1 and verify compilation.
+
+Then implement Phase 2 and verify compilation.
+
+Continue phase by phase.
+
+After each phase, make sure the project still builds.
+
+Do not invent APIs, entities, services, or dependencies that already exist in the repository. Prefer adapting existing abstractions when they are sound.
+
+If an existing abstraction is architecturally wrong, explain why before replacing it.
+
+==================================================
+FINAL ARCHITECTURAL PRINCIPLE
+==================================================
+
+Do not think of the worker as belonging to a user.
+
+The worker is stateless.
+
+The execution context belongs to the automation.
+
+The desired relationship is:
+
+User
+  ↓
+Profile + LinkedInAccount
+  ↓
+AutomationConfig
+  ↓
+Queue Job
+  ↓
+Worker
+  ↓
+Puppeteer
+  ↓
+LinkedIn
+
+The worker must be reusable for any user and any automation configuration.
+
+A worker should never contain hardcoded user-specific state.

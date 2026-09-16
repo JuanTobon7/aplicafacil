@@ -1,4 +1,4 @@
-import { PeopleDto } from "../tools/dto/people.dto.js";
+import { PeopleDto } from "@aplicafacil/core/domain";
 import { ClientBackend } from "./client.backend.js";
 
 export class ClientPeople {
