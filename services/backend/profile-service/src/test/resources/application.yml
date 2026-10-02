@@ -1,0 +1,24 @@
+# Reemplaza al application.yml principal en los tests: sin config-server ni Eureka.
+# La base de datos la provee Testcontainers (@ServiceConnection).
+spring:
+  application:
+    name: profile-service
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: profile
+        default_batch_fetch_size: 50
+  flyway:
+    schemas: profile
+    default-schema: profile
+
+eureka:
+  client:
+    enabled: false

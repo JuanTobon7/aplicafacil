@@ -1,0 +1,25 @@
+# Eureka no lee del config-server a propósito: es infraestructura base y
+# así se evita una dependencia circular en el arranque.
+server:
+  port: 8761
+
+spring:
+  application:
+    name: discovery-server
+
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME:localhost}
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    # En desarrollo los servicios se reinician seguido; sin esto Eureka
+    # entra en "self-preservation" y no limpia instancias muertas.
+    enable-self-preservation: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

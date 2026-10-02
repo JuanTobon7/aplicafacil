@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.dev/contracts/user-registered-event.schema.json",
+  "title": "UserRegisteredEvent",
+  "description": "auth-service → people-service: se registró una cuenta. people-service crea la Person (Person.userId = userId). Routing key user.registered.",
+  "type": "object",
+  "required": ["eventId", "userId", "email", "firstName", "lastName", "occurredAt"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid", "description": "Id de la cuenta = sub de los tokens." },
+    "email": { "type": "string", "format": "email", "description": "Normalizado a minúsculas." },
+    "firstName": { "type": "string", "maxLength": 100 },
+    "lastName": { "type": "string", "maxLength": 100 },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,39 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${PROFILE_DB_USER:profile_svc}
+    password: ${PROFILE_DB_PASSWORD:profile_svc}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: profile
+        # Colecciones LAZY del agregado Profile cargadas por lotes (evita N+1)
+        default_batch_fetch_size: 50
+  flyway:
+    schemas: profile
+    default-schema: profile
+  servlet:
+    multipart:
+      max-file-size: 10MB
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      embedding:
+        options:
+          model: ${EMBEDDING_MODEL:text-embedding-3-small}
+    vectorstore:
+      pgvector:
+        schema-name: profile
+        table-name: vector_store
+        # La tabla la crea Flyway (V1__vector_store.sql), no Spring AI
+        initialize-schema: false
+        dimensions: 1536
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE

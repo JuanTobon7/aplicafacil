@@ -1,0 +1,7 @@
+# Solo lo mínimo para arrancar: el resto de la configuración vive en
+# services/backend/config-repo/automation-service.yml (servido por el config-server).
+spring:
+  application:
+    name: automation-service
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"

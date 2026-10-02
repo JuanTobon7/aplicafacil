@@ -1,0 +1,50 @@
+server:
+  port: 9000
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${AUTH_DB_USER:auth_svc}
+    password: ${AUTH_DB_PASSWORD:auth_svc}
+    hikari:
+      # Spring Authorization Server usa nombres de tabla sin schema (JDBC)
+      schema: auth
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: auth
+  flyway:
+    schemas: auth
+    default-schema: auth
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+
+aplicafacil:
+  auth:
+    # URL pública: es el "iss" de todos los tokens. Debe ser la misma que ve el navegador.
+    issuer: ${AUTH_ISSUER_URI:http://localhost:9000}
+    api-audience: aplicafacil-api
+    access-token-ttl: 15m
+    cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    web-client:
+      client-id: aplicafacil-web
+      # Agregar aquí el redirect de la extensión: chrome-extension://<id>/callback.html
+      redirect-uris: ${AUTH_WEB_REDIRECT_URIS:http://localhost:5173/callback}
+      post-logout-redirect-uris: ${AUTH_WEB_POST_LOGOUT_URIS:http://localhost:5173/}
+    automation-client:
+      client-id: automation-service
+      secret: ${AUTOMATION_CLIENT_SECRET:}
+      scopes: people:read, profile:read, jobs:read, jobs:write
+    mcp-gateway-client:
+      client-id: mcp-gateway
+      secret: ${MCP_GATEWAY_CLIENT_SECRET:}
+      scopes: profile:read, jobs:read
+    bootstrap-admin:
+      email: ${AUTH_ADMIN_EMAIL:}
+      password: ${AUTH_ADMIN_PASSWORD:}

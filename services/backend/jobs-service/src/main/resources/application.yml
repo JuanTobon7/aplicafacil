@@ -1,0 +1,7 @@
+# Solo lo mínimo para arrancar: el resto de la configuración vive en
+# services/backend/config-repo/jobs-service.yml (servido por el config-server).
+spring:
+  application:
+    name: jobs-service
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"

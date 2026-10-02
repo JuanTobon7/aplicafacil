@@ -1,0 +1,2 @@
+com.aplicafacil.platform.security.ResourceServerSecurityAutoConfiguration
+com.aplicafacil.platform.web.WebAutoConfiguration

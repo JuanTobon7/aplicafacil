@@ -1,0 +1,59 @@
+server:
+  port: 8083
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+    listener:
+      simple:
+        # Una postulación a la vez por instancia; si falla 3 veces → DLQ
+        prefetch: 1
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}   # 6380 en el host (ver infra/docker-compose.yml)
+
+  # Token de servicio para llamar a people-service / profile-service / jobs-service
+  security:
+    oauth2:
+      client:
+        registration:
+          auth:
+            provider: auth
+            client-id: automation-service
+            client-secret: ${AUTOMATION_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            scope: people:read, profile:read, jobs:read, jobs:write
+        provider:
+          auth:
+            token-uri: ${AUTH_SERVER_URL:http://localhost:9000}/oauth2/token
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${CHAT_MODEL:gpt-4.1-mini}
+    mcp:
+      client:
+        # Se activa cuando exista el mcp-gateway (Python)
+        enabled: ${MCP_CLIENT_ENABLED:false}
+        type: SYNC
+        streamable-http:
+          connections:
+            aplicafacil:
+              url: ${MCP_GATEWAY_URL:http://localhost:8000}
+              endpoint: /mcp
+
+aplicafacil:
+  automation:
+    max-jobs-per-run: 10

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crear cuenta · AplicaFacil</title>
+  <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main>
+  <h1>Crear cuenta</h1>
+  <p class="subtitle">AplicaFacil</p>
+
+  <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+    <div class="alert error" th:if="${#fields.hasGlobalErrors()}" role="alert">
+      <span th:each="err : ${#fields.globalErrors()}" th:text="${err}"></span>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="firstName">Nombre</label>
+        <input id="firstName" th:field="*{firstName}" type="text" autocomplete="given-name" maxlength="100" required>
+        <div class="field-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+      </div>
+      <div>
+        <label for="lastName">Apellido</label>
+        <input id="lastName" th:field="*{lastName}" type="text" autocomplete="family-name" maxlength="100" required>
+        <div class="field-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+      </div>
+    </div>
+
+    <label for="email">Email</label>
+    <input id="email" th:field="*{email}" type="email" autocomplete="email" required>
+    <div class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+
+    <!-- Las contraseñas nunca se vuelven a pintar en la página -->
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" autocomplete="new-password" required>
+    <div class="hint">Mínimo 8 caracteres, con letras y números.</div>
+    <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+
+    <label for="confirmPassword">Confirmar contraseña</label>
+    <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required>
+    <div class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
+
+    <button type="submit">Crear cuenta</button>
+  </form>
+
+  <p class="footer">¿Ya tienes cuenta? <a th:href="@{/login}">Iniciar sesión</a></p>
+</main>
+</body>
+</html>

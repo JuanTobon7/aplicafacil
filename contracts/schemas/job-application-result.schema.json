@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.dev/contracts/job-application-result.schema.json",
+  "title": "JobApplicationResultEvent",
+  "description": "scraper → automation-service: resultado de un ApplyJobCommand (routing key job.applied | job.failed | job.skipped).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "commandId", "jobId", "status", "occurredAt"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "commandId": { "type": "string", "format": "uuid" },
+    "jobId": { "type": "string", "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": ["APPLIED", "FAILED", "SKIPPED", "EXTERNAL_APPLICATION", "CAPTCHA_REQUIRED"]
+    },
+    "reason": { "type": "string", "description": "Detalle legible cuando no es APPLIED." },
+    "retryable": { "type": "boolean", "default": false },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

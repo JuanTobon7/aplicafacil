@@ -1,0 +1,63 @@
+asyncapi: 3.0.0
+info:
+  title: AplicaFacil - mensajería entre servicios
+  version: 0.1.0
+  description: |
+    Comandos y eventos que viajan por RabbitMQ.
+    Cada servicio declara su topología (MessagingConfig.java en automation-,
+    auth- y people-service). Exchange de eventos: aplicafacil.events (topic).
+
+servers:
+  local:
+    host: localhost:5672
+    protocol: amqp
+
+channels:
+  applyJob:
+    address: scraper.apply-job
+    description: Exchange aplicafacil.commands, routing key apply.job
+    messages:
+      ApplyJobCommand:
+        payload:
+          $ref: "../schemas/apply-job-command.schema.json"
+
+  jobEvents:
+    address: automation.job-events
+    description: Exchange aplicafacil.events, routing keys job.applied | job.failed | job.skipped
+    messages:
+      JobApplicationResultEvent:
+        payload:
+          $ref: "../schemas/job-application-result.schema.json"
+
+  userRegistered:
+    address: people.user-registered
+    description: Exchange aplicafacil.events, routing key user.registered (cola de people-service)
+    messages:
+      UserRegisteredEvent:
+        payload:
+          $ref: "../schemas/user-registered-event.schema.json"
+
+operations:
+  sendApplyJob:
+    action: send
+    summary: automation-service ordena al scraper postularse a una vacante
+    channel:
+      $ref: "#/channels/applyJob"
+
+  receiveJobResult:
+    action: receive
+    summary: automation-service recibe el resultado publicado por el scraper
+    channel:
+      $ref: "#/channels/jobEvents"
+
+  publishUserRegistered:
+    action: send
+    summary: auth-service avisa que se registró una cuenta (después del commit)
+    channel:
+      $ref: "#/channels/userRegistered"
+
+  receiveUserRegistered:
+    action: receive
+    summary: people-service crea la Person del usuario (idempotente por userId)
+    channel:
+      $ref: "#/channels/userRegistered"

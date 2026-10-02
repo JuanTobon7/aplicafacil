@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+# Cada servicio tiene un prefijo /api/<servicio>/ que el gateway quita:
+#   GET /api/profile/profiles/123  →  profile-service  GET /profiles/123
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=2
+            - id: people-service
+              uri: lb://people-service
+              predicates:
+                - Path=/api/people/**
+              filters:
+                - StripPrefix=2
+            - id: profile-service
+              uri: lb://profile-service
+              predicates:
+                - Path=/api/profile/**
+              filters:
+                - StripPrefix=2
+            - id: jobs-service
+              uri: lb://jobs-service
+              predicates:
+                - Path=/api/jobs/**
+              filters:
+                - StripPrefix=2
+            - id: automation-service
+              uri: lb://automation-service
+              predicates:
+                - Path=/api/automation/**
+              filters:
+                - StripPrefix=2
+
+aplicafacil:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

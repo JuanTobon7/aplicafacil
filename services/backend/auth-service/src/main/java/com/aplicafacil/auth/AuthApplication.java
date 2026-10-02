@@ -1,0 +1,13 @@
+package com.aplicafacil.auth;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/** Authorization Server OAuth 2.1 / OpenID Connect de AplicaFacil. */
+@SpringBootApplication
+public class AuthApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AuthApplication.class, args);
+    }
+}

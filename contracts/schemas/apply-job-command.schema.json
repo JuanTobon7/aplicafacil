@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.dev/contracts/apply-job-command.schema.json",
+  "title": "ApplyJobCommand",
+  "description": "automation-service → scraper: postularse a una vacante.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["commandId", "jobId", "userId", "profileId", "linkedinAccountId", "url", "title", "issuedAt"],
+  "properties": {
+    "commandId": { "type": "string", "format": "uuid", "description": "Idempotencia: el scraper ignora comandos repetidos." },
+    "jobId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "description": "sub del usuario (id de la cuenta en auth-service)" },
+    "profileId": { "type": "string", "format": "uuid" },
+    "linkedinAccountId": { "type": "string", "format": "uuid", "description": "Cuenta de LinkedIn con la que se postula (lock por cuenta)." },
+    "url": { "type": "string", "format": "uri" },
+    "title": { "type": "string" },
+    "attempt": { "type": "integer", "minimum": 1, "default": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,30 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${PEOPLE_DB_USER:people_svc}
+    password: ${PEOPLE_DB_PASSWORD:people_svc}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: people
+  flyway:
+    schemas: people
+    default-schema: people
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+    listener:
+      simple:
+        # 3 intentos y luego a la dead-letter queue (sin reencolar infinito)
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3

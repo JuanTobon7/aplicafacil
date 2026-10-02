@@ -1,0 +1,48 @@
+# Reemplaza al application.yml principal en los tests: sin config-server ni Eureka.
+# Postgres y RabbitMQ los provee Testcontainers (@ServiceConnection).
+spring:
+  application:
+    name: auth-service
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+  datasource:
+    hikari:
+      schema: auth
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: auth
+  flyway:
+    schemas: auth
+    default-schema: auth
+
+eureka:
+  client:
+    enabled: false
+
+aplicafacil:
+  auth:
+    issuer: http://localhost:9000
+    api-audience: aplicafacil-api
+    access-token-ttl: 15m
+    cors-allowed-origins: http://localhost:5173
+    web-client:
+      client-id: aplicafacil-web
+      redirect-uris: http://localhost:5173/callback
+      post-logout-redirect-uris: http://localhost:5173/
+    automation-client:
+      client-id: automation-service
+      secret: automation-test-secret
+      scopes: people:read, profile:read, jobs:read, jobs:write
+    mcp-gateway-client:
+      client-id: mcp-gateway
+      secret: mcp-test-secret
+      scopes: profile:read, jobs:read
+    bootstrap-admin:
+      email: admin@aplicafacil.test
+      password: Admin12345

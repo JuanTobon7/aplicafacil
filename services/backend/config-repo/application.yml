@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────────────
+# Configuración COMPARTIDA por todos los servicios que leen del config-server.
+# Los placeholders ${...} los resuelve cada servicio con SUS variables de
+# entorno (el config-server los entrega sin resolver).
+# Específico de cada servicio: <spring.application.name>.yml
+# Por perfil: <servicio>-<perfil>.yml (p. ej. jobs-service-docker.yml)
+# ─────────────────────────────────────────────────────────────────────
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # iss que trae el token (URL pública de auth-service)
+          issuer-uri: ${AUTH_ISSUER_URI:http://localhost:9000}
+          # de dónde bajar las llaves (en Docker es la URL interna)
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:9000/oauth2/jwks}
+          # solo se aceptan tokens emitidos PARA el backend
+          audiences: aplicafacil-api
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.aplicafacil: DEBUG
