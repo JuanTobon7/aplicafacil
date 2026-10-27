@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.aplicafacil</groupId>
+        <artifactId>backend</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>linkedin-contract</artifactId>
+    <name>linkedin-contract</name>
+    <description>Contrato Java (sin Spring) de la identidad y el perfil de LinkedIn, compartido por identity-service y linkedin-service</description>
+
+    <!--
+        Excepción acotada a la regla "lo compartido son contratos, no código" (ADR 0001):
+        solo records inmutables e interfaces, sin lógica ni dependencias.
+    -->
+</project>

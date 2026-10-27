@@ -1,0 +1,47 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${LINKEDIN_DB_USER:linkedin_svc}
+    password: ${LINKEDIN_DB_PASSWORD:linkedin_svc}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: linkedin
+  flyway:
+    schemas: linkedin
+    default-schema: linkedin
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+
+  mvc:
+    # SSE: un intento de conexión dura hasta 5 minutos
+    async:
+      request-timeout: 10m
+
+aplicafacil:
+  # AES-256-GCM del storageState. Obligatoria para arrancar.
+  session-encryption:
+    key: ${SESSION_ENCRYPTION_KEY:}
+    key-version: ${SESSION_ENCRYPTION_KEY_VERSION:1}
+  linkedin:
+    # LOCAL_PLAYWRIGHT (fase local: scraper NestJS en este equipo) | BROWSER_EXTENSION (fase desplegada, stub)
+    session-provider: ${LINKEDIN_SESSION_PROVIDER:LOCAL_PLAYWRIGHT}
+    login-url: https://www.linkedin.com/login
+    login-timeout: 5m
+    # Tiempo máximo que una automatización puede retener la sesión de un usuario
+    session-lease: 30m
+    # Scraper NestJS + Playwright: implementación del navegador (contracts/openapi/scraper-browser.yaml)
+    scraper-url: ${SCRAPER_URL:http://127.0.0.1:8090}
+    identity-service-url: ${IDENTITY_SERVICE_URL:http://127.0.0.1:9000}
+    profile-service-url: ${PROFILE_SERVICE_URL:http://127.0.0.1:8084}
+    # Para pedir tokens de servicio a identity-service (/internal/token)
+    service-client-secret: ${SERVICE_CLIENT_SECRET:}

@@ -1,6 +1,6 @@
 # ADR 0002: auth-service propio en lugar de Keycloak
 
-- **Estado:** aceptada (reemplaza a Keycloak como Authorization Server de la ADR 0001)
+- **Estado:** reemplazada por [ADR 0003](0003-identidad-linkedin-y-sesion-local.md) (el código está en `legacy/`)
 - **Fecha:** 2026-10-01
 
 ## Contexto

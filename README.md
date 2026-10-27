@@ -1,72 +1,125 @@
 # aplicafacil
 
-Proyecto de automatización de búsqueda y postulación a empleos. Arquitectura de microservicios
-(Java + Node + Python). Decisiones en [docs/adr](docs/adr).
+Automatización de búsqueda y postulación a empleos. Microservicios Java + Node + Python. Tu cuenta de
+LinkedIn es tu cuenta en la plataforma: no hay contraseñas propias. Decisiones en [docs/adr](docs/adr)
+(las vigentes para identidad y sesión: [ADR 0003](docs/adr/0003-identidad-linkedin-y-sesion-local.md) y
+[ADR 0004](docs/adr/0004-scraper-como-implementacion-del-navegador.md)).
 
 ```
 aplicafacil/
 ├── apps/
-│   ├── web/                     # React + Vite
-│   └── extension/               # Extensión de Chrome
+│   ├── web/                     # React + Vite (el gateway sirve el build)
+│   └── extension/               # Extensión de Chrome (fase desplegada)
 ├── services/
-│   ├── backend/                 # Java 25 · Spring Boot 4.1 · Spring Cloud 2025.1 (Maven multi-módulo)
-│   │   ├── config-repo/         # YAML servidos por el config-server
-│   │   ├── libs/platform-common/
-│   │   ├── platform/
-│   │   │   ├── config-server/     :8888
-│   │   │   ├── discovery-server/  :8761
-│   │   │   └── api-gateway/       :8080
-│   │   ├── auth-service/          :9000  OAuth 2.1 / OIDC (login, registro, tokens)
-│   │   ├── people-service/        :8081
+│   ├── backend/                 # Java 25 · Spring Boot 4.1 (Maven multi-módulo)
+│   │   ├── config-repo/         # YAML de cada servicio; *-local.yml = fase local
+│   │   ├── libs/
+│   │   │   ├── platform-common/   # seguridad (resource server) y errores
+│   │   │   ├── platform-crypto/   # SessionCryptoService (AES-256-GCM)
+│   │   │   └── linkedin-contract/ # records de identidad y perfil compartidos
+│   │   ├── platform/api-gateway/  :8080  front + token local + rutas /api/**
+│   │   ├── identity-service/      :9000  usuarios, JWT propios, refresh, cuentas
+│   │   ├── linkedin-service/      :8085  sesión cifrada, estado, SSE (proxy del scraper)
+│   │   ├── computrabajo-service/  :8087  sesión de candidato de Computrabajo cifrada (ADR 0008)
 │   │   ├── profile-service/       :8084
-│   │   ├── jobs-service/          :8082
-│   │   └── automation-service/    :8083
-│   ├── scraper/                 # Node + NestJS + Puppeteer
-│   └── mcp-gateway/             # Python, servidor MCP
+│   │   ├── jobs-service/          :8082  postulaciones y worker de búsqueda de vacantes (ADR 0006)
+│   │   ├── automation-service/    :8083
+│   │   └── ai-config-service/     :8086  proveedores de IA por usuario, API keys cifradas (ADR 0005)
+│   ├── scraper/                 :8090  NestJS + Playwright: el navegador (sin BD)
+│   └── mcp-gateway/             :8000  Python · Django + SDK MCP: tools sobre los proveedores de IA (ADR 0005)
 ├── contracts/                   # JSON Schema, AsyncAPI, OpenAPI
 ├── infra/                       # docker-compose, init de Postgres
-└── docs/adr/
+└── legacy/                      # código retirado (auth con contraseña, Playwright en Java…)
 ```
 
 ## Levantar en local
 
-1. Infraestructura (Postgres + pgvector, RabbitMQ, Redis):
-   ```bash
-   cp infra/.env.example infra/.env
-   docker compose -f infra/docker-compose.yml up -d
-   ```
-   Puertos en el host: Postgres **5434**, RabbitMQ 5672/15672, Redis **6380**
-   (5432, 5433 y 6379 ya están ocupados en esta máquina).
-2. Servicios Java, en este orden (desde `services/backend`, o desde el IDE):
-   ```bash
-   ./mvnw install -DskipTests          # una vez: instala platform-common
-   ./mvnw -pl platform/config-server spring-boot:run
-   ./mvnw -pl platform/discovery-server spring-boot:run
-   ./mvnw -pl auth-service spring-boot:run
-   ./mvnw -pl platform/api-gateway spring-boot:run
-   ./mvnw -pl people-service spring-boot:run      # igual para profile-, jobs- y automation-service
-   ```
-   auth-service necesita las variables de `infra/.env` (secretos de los clientes y admin inicial).
-   También se pueden levantar todos en contenedores: `docker compose -f infra/docker-compose.yml --profile apps up -d --build`.
+Requisitos: Docker Desktop, JDK 25, Node.js 22+ y algún Python (para instalar `uv`; el script se encarga del resto).
 
-| UI | URL |
+```bash
+.\dev-up.cmd
+```
+
+El script:
+
+1. Si Docker Desktop está apagado, lo abre y espera a que responda.
+2. Crea `infra/.env` desde `.env.example` y genera `SESSION_ENCRYPTION_KEY` y `SERVICE_CLIENT_SECRET` si están vacías.
+3. Levanta Postgres 18 + pgvector, RabbitMQ y Redis (`docker compose up -d`), publicados **solo en 127.0.0.1**,
+   y crea los schemas que falten sin borrar datos.
+4. Compila (la primera vez o con `-Build`): servicios Java con JDK 25, scraper, web y el entorno Python del
+   mcp-gateway. Si falta `uv` lo instala con pip (o winget), y `uv` descarga Python 3.13 si no está.
+5. Arranca en este equipo el scraper, los servicios Java (perfil `local`, sin config-server ni Eureka) y el
+   mcp-gateway. Los logs quedan en `logs\`.
+6. Abre http://127.0.0.1:8080 y **se queda en primer plano** mostrando la actividad del worker de búsquedas.
+   **Ctrl+C detiene todo**: los servicios y los contenedores (los datos se conservan).
+
+Opciones: `-Build` (recompilar), `-Dev` (además Vite con recarga en caliente en http://127.0.0.1:5173),
+`-Test` (no arranca nada: corre todas las pruebas —Java y mcp-gateway con Postgres/RabbitMQ reales, scraper y
+typecheck del front— y muestra un resumen; sale con código 1 si alguna falla), `-ShowBrowser` (las búsquedas de
+vacantes se hacen en una ventana visible del navegador y la consola muestra cada paso), `-KeepInfra` (Ctrl+C deja
+corriendo Postgres, RabbitMQ y Redis), `-Detach` (deja todo en segundo plano, como antes) y
+`-Down` (detiene lo que haya quedado en segundo plano, sin borrar datos). pgAdmin:
+`docker compose -f infra/docker-compose.yml --profile tools up -d` → http://127.0.0.1:5050.
+
+La primera vez el scraper descarga Chromium; mientras tanto "Abrir LinkedIn" responde que el navegador aún
+no está listo.
+
+### Por qué así
+
+- **El scraper y los servicios Java corren en el host, no en Docker:** el inicio de sesión abre un navegador visible.
+- **La sesión de LinkedIn** (storageState de Playwright) solo persiste **cifrada** en PostgreSQL. El scraper la
+  recibe por HTTP local en cada operación y nunca la escribe en disco.
+- **Token local:** el gateway genera uno en cada arranque, lo inyecta en el `index.html` y lo exige en `/api/**`.
+  También rechaza un Host o un Origin ajenos (DNS rebinding). Ninguna página externa puede llamar la API local.
+
+## Identidad
+
+| Paso | Qué pasa |
 |---|---|
-| Login / registro | http://localhost:9000/login |
-| OpenID discovery | http://localhost:9000/.well-known/openid-configuration |
-| Eureka | http://localhost:8761 |
-| RabbitMQ | http://localhost:15672 |
-| Swagger de cada servicio | http://localhost:808X/swagger-ui.html |
+| Conectar / Agregar cuenta | El scraper abre linkedin.com/login, la persona inicia sesión, se lee la identidad y `identity-service` crea, actualiza o vincula el usuario |
+| Entrar | El front canjea un código de un solo uso por un JWT (15 min, en memoria) y la cookie `af_rt` (HttpOnly, Secure, SameSite=Strict) |
+| "Continuar como…" | Se valida la sesión guardada (headless) antes de emitir tokens |
+| Entre servicios | Tokens de servicio (`roles=[SERVICE]`) de `identity-service` (`/internal/token`) |
 
-## Autenticación (OAuth 2.1 / OIDC)
+Todos los servicios validan el JWT con el JWKS de `identity-service` (`http://127.0.0.1:9000/.well-known/jwks.json`).
 
-`auth-service` es el servidor de autorización ([ADR 0002](docs/adr/0002-auth-service-propio.md)).
+## Proveedores de IA y MCP
 
-| Quién | Cómo obtiene el token |
-|---|---|
-| Front web / extensión | Authorization Code + PKCE con el cliente público `aplicafacil-web` → `http://localhost:9000/oauth2/authorize` |
-| automation-service | `client_credentials` con `automation-service` |
-| mcp-gateway | token exchange (RFC 8693) con `mcp-gateway` |
+En **Proveedores de IA** (`/ia`) cada persona agrega OpenAI (o una API compatible) u OpenRouter con su API key,
+elige modelo y parámetros, prueba la conexión y ve el estado (`PENDING` → `ACTIVE`/`FAILED`). La key se guarda
+cifrada en `ai-config-service` y nunca vuelve al navegador ni viaja por RabbitMQ. El `mcp-gateway` expone esas
+configuraciones como tools MCP en `http://127.0.0.1:8000/mcp`. Detalle: [ADR 0005](docs/adr/0005-mcp-gateway-y-proveedores-de-ia.md)
+y [services/mcp-gateway](services/mcp-gateway/README.md).
 
-Todos los servicios validan el JWT (firma, `iss = http://localhost:9000` y `aud = aplicafacil-api`).
-Cuenta propia: `GET /api/auth/me` y `POST /api/auth/me/password`. Administración (rol ADMIN):
-`GET /api/auth/users` y `PATCH /api/auth/users/{id}/enabled`.
+## Computrabajo
+
+En **Mi perfil → Computrabajo** se abre una ventana para iniciar sesión como candidato (también con Google); la sesión
+queda cifrada en `computrabajo-service`. Al abrir la app se comprueba que siga viva y, si venció, se pide iniciar sesión
+de nuevo. Detalle: [ADR 0008](docs/adr/0008-sesion-de-computrabajo.md).
+
+## Búsqueda de vacantes
+
+En **Vacantes → Buscar con IA**, la IA lee tu perfil, elige las búsquedas y las lanza sola en LinkedIn y Computrabajo
+(`profile.search-plan.ready` por RabbitMQ, [ADR 0007](docs/adr/0007-perfil-desde-cv-con-ia-y-busqueda-sugerida.md)).
+También se puede buscar a mano:
+
+`POST /api/jobs/searches` (`{"platform": "LINKEDIN" | "COMPUTRABAJO", "keywords", "location", "maxResults",
+"postedWithinDays"}`) guarda la búsqueda, la encola en RabbitMQ (`jobs.search.requested`, por outbox) y responde 202. El worker de `jobs-service` la toma, abre el navegador
+headless del scraper (LinkedIn con tu sesión, a través de `linkedin-service`; Computrabajo sin sesión), recorre las
+cards del listado y guarda las ofertas. Consulta el estado en `GET /api/jobs/searches/{id}` y las ofertas en
+`GET /api/jobs/searches/{id}/postings`. Diseño y patrones: [ADR 0006](docs/adr/0006-worker-de-busqueda-de-vacantes.md).
+
+## Calidad
+
+El listón del repo está en [CONSTRAINTS.md](CONSTRAINTS.md): líneas por función, complejidad, acoplamiento entre capas,
+secretos y dependencias, cada uno con su número, su motivo y el comando que lo verifica.
+
+```bash
+.\quality.cmd            # al terminar una tarea (piso, tamaño, capas y pruebas de lo cambiado)
+.\quality.cmd -Fast      # mientras se edita
+.\quality.cmd -Full      # antes de integrar (incluye gitleaks y osv-scanner)
+```
+
+Las reglas de capas, ciclos, inversión de dependencias y puertos chicos (ArchUnit) no tienen deuda: cualquier violación
+falla. Lo único heredado de tamaño/complejidad está en `tools/quality/baseline.json` y no puede crecer. SOLID y GRASP,
+con cómo se ven en este repo, están en la sección "Diseño" de [CONSTRAINTS.md](CONSTRAINTS.md).

@@ -1,0 +1,248 @@
+openapi: 3.1.0
+info:
+  title: profile-service — perfil laboral, importación de CV y búsqueda sugerida
+  version: 1.0.0
+  description: |
+    El front lo llama por el api-gateway (`/api/profile/**`, que quita `/api/profile`). Todo se limita al usuario del
+    token (`sub`). ADR 0007.
+
+    - Importar un CV y pedir la búsqueda sugerida responden **202** con una tarea de IA: el texto va al mcp-gateway
+      por RabbitMQ (`ai.request.submit`) y el resultado vuelve como `ai.request.completed|failed`. El front consulta
+      la tarea hasta que deja de estar `PENDING`.
+    - Al terminar una extracción de CV, profile-service pide la búsqueda sugerida con el mismo proveedor.
+    - Lo editado a mano no se pisa ni con LinkedIn ni con un CV.
+servers:
+  - url: http://127.0.0.1:8084
+security:
+  - userToken: []
+paths:
+  /profiles/me:
+    get:
+      summary: El perfil de la persona
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Profile" } } } }
+        "404": { description: Todavía no tiene perfil }
+  /profiles/me/cv:
+    post:
+      summary: Importa un CV (PDF o Word) y lo descompone con IA en skills, experiencias, educación…
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, configId]
+              properties:
+                file: { type: string, format: binary, description: "PDF, DOC o DOCX, hasta 10 MB" }
+                configId: { type: string, format: uuid, description: Proveedor de IA de la persona (ai-config-service) }
+      responses:
+        "202": { description: Tarea creada, content: { application/json: { schema: { $ref: "#/components/schemas/AiTask" } } } }
+        "400": { description: "Archivo vacío, sin texto legible o de un tipo no soportado (code: CV_UNREADABLE | CV_UNSUPPORTED)" }
+        "409": { description: "Ya hay una tarea de IA en curso (code: AI_TASK_IN_PROGRESS)" }
+  /profiles/me/search-suggestion:
+    post:
+      summary: Pide a la IA la búsqueda de empleo que mejor encaja con el perfil
+      description: La misma respuesta de la IA trae el perfil laboral (rol, seniority, título); se aplica salvo que se haya editado a mano.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [configId]
+              properties:
+                configId: { type: string, format: uuid }
+      responses:
+        "202": { description: Tarea creada, content: { application/json: { schema: { $ref: "#/components/schemas/AiTask" } } } }
+        "404": { description: Todavía no tiene perfil }
+        "409": { description: "Ya hay una tarea de IA en curso (code: AI_TASK_IN_PROGRESS)" }
+  /profiles/me/search-plan:
+    post:
+      summary: La IA elige las búsquedas para el perfil y se lanzan solas en LinkedIn y Computrabajo
+      description: |
+        Igual que search-suggestion (la sugerencia queda en el perfil), y al terminar la tarea publica
+        profile.search-plan.ready: jobs-service encola la búsqueda principal y una alternativa en cada portal
+        (contracts/schemas/search-plan-ready-event.schema.json). Las búsquedas creadas traen planId = id de la tarea.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [configId]
+              properties:
+                configId: { type: string, format: uuid }
+      responses:
+        "202": { description: Tarea creada (kind SEARCH_PLAN), content: { application/json: { schema: { $ref: "#/components/schemas/AiTask" } } } }
+        "404": { description: Todavía no tiene perfil }
+        "409": { description: "Ya hay una tarea de IA en curso (code: AI_TASK_IN_PROGRESS)" }
+  /profiles/me/search-preference:
+    put:
+      summary: Ajusta la búsqueda (palabras clave, solo remoto, antigüedad máxima de la oferta, lugar)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keywords, remoteOnly]
+              properties:
+                keywords: { type: string, minLength: 2, maxLength: 200 }
+                remoteOnly: { type: boolean }
+                postedWithinDays: { type: [integer, "null"], minimum: 1, maximum: 30 }
+                location: { type: [string, "null"], maxLength: 120 }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/SearchPreference" } } } }
+  /profiles/me/work-profile:
+    put:
+      summary: Define a mano el perfil laboral (rol principal, secundarios, seniority y título)
+      description: |
+        Queda marcado como editado a mano (WORK_PROFILE en manuallyEditedFields): la IA ya no lo cambia al sugerir la
+        búsqueda. Con primaryRole = OTHER el título es obligatorio (perfiles fuera del catálogo: contador, enfermera…).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkProfileRequest" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/WorkProfile" } } } }
+        "400": { description: "Datos inválidos: OTHER sin título, más de 3 secundarios… (code: INVALID_REQUEST)" }
+  /profiles/me/ai-tasks:
+    get:
+      summary: Las últimas tareas de IA (más reciente primero)
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/AiTask" } } } }
+  /profiles/me/ai-tasks/{taskId}:
+    get:
+      summary: Estado de una tarea de IA
+      parameters:
+        - { name: taskId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/AiTask" } } } }
+        "404": { description: No existe o es de otra persona }
+components:
+  securitySchemes:
+    userToken: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    YearMonth: { type: [string, "null"], pattern: "^\\d{4}-\\d{2}$" }
+    Skill:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 100 }
+        category: { type: [string, "null"], enum: [LANGUAGE, FRAMEWORK, DATABASE, CLOUD, TOOL, PRACTICE, SOFT, OTHER, null] }
+        level: { type: [string, "null"], enum: [BASIC, INTERMEDIATE, ADVANCED, EXPERT, null] }
+        yearsOfExperience: { type: [integer, "null"], minimum: 0, maximum: 60 }
+    Experience:
+      type: object
+      required: [id, title, company]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, maxLength: 200 }
+        company: { type: string, maxLength: 200 }
+        location: { type: [string, "null"] }
+        startDate: { $ref: "#/components/schemas/YearMonth" }
+        endDate: { $ref: "#/components/schemas/YearMonth", description: null = cargo actual }
+        description: { type: [string, "null"] }
+        technologies: { type: array, items: { type: string } }
+    Education:
+      type: object
+      required: [id, institution]
+      properties:
+        id: { type: string, format: uuid }
+        institution: { type: string, maxLength: 200 }
+        degree: { type: [string, "null"] }
+        fieldOfStudy: { type: [string, "null"] }
+        startDate: { $ref: "#/components/schemas/YearMonth" }
+        endDate: { $ref: "#/components/schemas/YearMonth" }
+        description: { type: [string, "null"] }
+    Language:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        proficiency: { type: [string, "null"] }
+    Certification:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        issuer: { type: [string, "null"] }
+        issuedOn: { $ref: "#/components/schemas/YearMonth" }
+    WorkRole:
+      type: string
+      enum: [BACKEND, FRONTEND, FULLSTACK, MOBILE, DEVOPS, DATA_ENGINEERING, DATA_SCIENCE, DATA_ANALYSIS, QA, UX_UI,
+             SECURITY, EMBEDDED, GAME_DEV, PRODUCT, IT_SUPPORT, OTHER]
+      description: |
+        Tipo de perfil laboral. DEVOPS incluye SRE y cloud; DATA_SCIENCE incluye machine learning e IA; PRODUCT incluye
+        product owner, project manager y scrum master; OTHER, cualquier perfil fuera del catálogo (con título).
+    Seniority:
+      type: [string, "null"]
+      enum: [INTERN, JUNIOR, MID, SENIOR, LEAD, null]
+    WorkProfile:
+      type: object
+      required: [primaryRole, secondaryRoles, source]
+      properties:
+        primaryRole: { $ref: "#/components/schemas/WorkRole" }
+        secondaryRoles: { type: array, items: { $ref: "#/components/schemas/WorkRole" }, maxItems: 3 }
+        seniority: { $ref: "#/components/schemas/Seniority" }
+        title: { type: [string, "null"], maxLength: 120, description: "Cómo se presenta la persona (\"Desarrolladora backend Java\")" }
+        source: { enum: [AI, MANUAL] }
+        updatedAt: { type: [string, "null"], format: date-time }
+    WorkProfileRequest:
+      type: object
+      required: [primaryRole]
+      additionalProperties: false
+      properties:
+        primaryRole: { $ref: "#/components/schemas/WorkRole" }
+        secondaryRoles: { type: array, items: { $ref: "#/components/schemas/WorkRole" }, maxItems: 3 }
+        seniority: { $ref: "#/components/schemas/Seniority" }
+        title: { type: [string, "null"], maxLength: 120 }
+    SearchPreference:
+      type: object
+      required: [keywords, alternatives, remoteOnly]
+      properties:
+        keywords: { type: [string, "null"], description: La búsqueda principal (elegida por la IA o editada) }
+        alternatives: { type: array, items: { type: string }, maxItems: 5 }
+        rationale: { type: [string, "null"], description: Por qué la IA eligió esa búsqueda }
+        remoteOnly: { type: boolean }
+        postedWithinDays: { type: [integer, "null"], minimum: 1, maximum: 30 }
+        location: { type: [string, "null"] }
+        suggestedAt: { type: [string, "null"], format: date-time }
+    Profile:
+      type: object
+      properties:
+        headline: { type: [string, "null"] }
+        summary: { type: [string, "null"] }
+        skills: { type: array, items: { $ref: "#/components/schemas/Skill" } }
+        experiences: { type: array, items: { $ref: "#/components/schemas/Experience" } }
+        education: { type: array, items: { $ref: "#/components/schemas/Education" } }
+        languages: { type: array, items: { $ref: "#/components/schemas/Language" } }
+        certifications: { type: array, items: { $ref: "#/components/schemas/Certification" } }
+        manuallyEditedFields: { type: array, items: { type: string } }
+        complete: { type: boolean }
+        missingSections: { type: array, items: { type: string } }
+        lastSyncedAt: { type: [string, "null"], format: date-time }
+        cvImportedAt: { type: [string, "null"], format: date-time }
+        searchPreference: { $ref: "#/components/schemas/SearchPreference" }
+        workProfile:
+          oneOf: [{ $ref: "#/components/schemas/WorkProfile" }, { type: "null" }]
+          description: null = todavía no se sabe (sin CV ni búsqueda sugerida ni edición)
+    AiTask:
+      type: object
+      required: [id, kind, status, createdAt, deadline]
+      properties:
+        id: { type: string, format: uuid, description: Es el requestId de ai.request.submit }
+        kind: { enum: [CV_EXTRACTION, SEARCH_SUGGESTION, SEARCH_PLAN] }
+        status: { enum: [PENDING, COMPLETED, FAILED, TIMED_OUT] }
+        fileName: { type: [string, "null"] }
+        errorCode: { type: [string, "null"] }
+        errorMessage: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        deadline: { type: string, format: date-time }
+        completedAt: { type: [string, "null"], format: date-time }

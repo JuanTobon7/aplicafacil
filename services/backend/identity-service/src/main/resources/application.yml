@@ -1,0 +1,8 @@
+# Solo lo mínimo para arrancar: el resto de la configuración vive en
+# services/backend/config-repo/identity-service.yml (servido por el config-server en la
+# fase desplegada; en local se lee del disco, ver CONFIG_IMPORT en dev-up.ps1).
+spring:
+  application:
+    name: identity-service
+  config:
+    import: "${CONFIG_IMPORT:configserver:${CONFIG_SERVER_URL:http://localhost:8888}}"

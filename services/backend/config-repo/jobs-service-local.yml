@@ -1,0 +1,5 @@
+# Fase local: sin OpenAI configurado, el modelo de chat (evaluate-job-fit) queda apagado.
+spring:
+  ai:
+    model:
+      chat: none

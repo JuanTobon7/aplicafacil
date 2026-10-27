@@ -1,0 +1,36 @@
+server:
+  port: 8087
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${COMPUTRABAJO_DB_USER:computrabajo_svc}
+    password: ${COMPUTRABAJO_DB_PASSWORD:computrabajo_svc}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: computrabajo
+  flyway:
+    schemas: computrabajo
+    default-schema: computrabajo
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+
+aplicafacil:
+  # AES-256-GCM del storageState (la misma llave que linkedin-service). Obligatoria para arrancar.
+  session-encryption:
+    key: ${SESSION_ENCRYPTION_KEY:}
+    key-version: ${SESSION_ENCRYPTION_KEY_VERSION:1}
+  computrabajo:
+    login-timeout: 5m
+    # Scraper NestJS + Playwright: /portals/computrabajo/sessions/** (contracts/openapi/scraper-browser.yaml)
+    scraper-url: ${SCRAPER_URL:http://127.0.0.1:8090}
+    identity-service-url: ${IDENTITY_SERVICE_URL:http://127.0.0.1:9000}
+    # Para pedir tokens de servicio a identity-service (/internal/token)
+    service-client-secret: ${SERVICE_CLIENT_SECRET:}

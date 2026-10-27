@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/search-plan-ready-event.schema.json",
+  "title": "profile.search-plan.ready",
+  "description": "profile-service lo publica (outbox) en el exchange aplicafacil.events cuando la IA terminó de elegir las búsquedas para el perfil y la persona pidió lanzarlas. jobs-service encola cada búsqueda en cada portal; planId hace idempotente la entrega repetida.",
+  "type": "object",
+  "required": ["schemaVersion", "eventId", "planId", "userId", "searches", "remoteOnly", "occurredAt"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "format": "uuid" },
+    "planId": { "type": "string", "format": "uuid", "description": "Id de la tarea de IA que generó el plan" },
+    "userId": { "type": "string", "format": "uuid" },
+    "searches": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "description": "Palabras clave elegidas por la IA: la principal primero",
+      "items": { "type": "string", "minLength": 2, "maxLength": 200 }
+    },
+    "remoteOnly": { "type": "boolean" },
+    "postedWithinDays": { "type": ["integer", "null"], "minimum": 1, "maximum": 30 },
+    "location": { "type": ["string", "null"], "maxLength": 120 },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

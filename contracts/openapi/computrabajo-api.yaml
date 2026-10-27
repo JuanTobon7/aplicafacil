@@ -1,0 +1,123 @@
+openapi: 3.1.0
+info:
+  title: computrabajo-service — sesión de candidato de Computrabajo
+  version: 1.0.0
+  description: |
+    El front lo llama por el api-gateway (`/api/computrabajo/**`, que quita `/api`). Todo se limita al usuario del token
+    (`sub`); a diferencia de LinkedIn, conectar Computrabajo no crea cuentas: la persona ya entró a AplicaFacil.
+    El navegador lo maneja el scraper (`/portals/computrabajo/sessions/**`, contracts/openapi/scraper-browser.yaml) y
+    el storageState se guarda cifrado con AES-256-GCM (ADR 0008).
+servers:
+  - url: http://127.0.0.1:8087
+security:
+  - userToken: []
+paths:
+  /computrabajo/status:
+    get:
+      summary: Estado de la conexión del usuario
+      responses:
+        "200":
+          description: Estado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectionStatus" }
+  /computrabajo/connect:
+    post:
+      summary: Abre la ventana de Computrabajo para que la persona inicie sesión
+      description: |
+        Responde enseguida con el intento; el front lo sigue con GET /computrabajo/connect/{attemptId} hasta que
+        termine. Solo puede haber un intento activo a la vez (hay un único navegador visible).
+      responses:
+        "202":
+          description: Intento iniciado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectAttempt" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /computrabajo/connect/{attemptId}:
+    parameters:
+      - { name: attemptId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Progreso de un intento de conexión
+      responses:
+        "200":
+          description: Intento
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConnectAttempt" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Cancela el intento (cierra la ventana)
+      responses:
+        "204": { description: Cancelado }
+        "404": { $ref: "#/components/responses/Error" }
+  /computrabajo/session/check:
+    post:
+      summary: Comprueba que la sesión guardada siga viva (el front lo llama al abrir la app)
+      description: |
+        Una validación de hace menos de 10 minutos se reusa sin abrir el navegador. Si no, la valida headless con el
+        scraper: si sigue viva renueva el storageState; si venció marca la conexión EXPIRED y el front pide iniciar
+        sesión de nuevo. UNAVAILABLE (el scraper no responde) no pide nada.
+      responses:
+        "200":
+          description: Resultado de la comprobación
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionCheck" }
+  /computrabajo/connection:
+    delete:
+      summary: Desconecta (borra la sesión cifrada). No falla si no había conexión.
+      responses:
+        "204": { description: Desconectado }
+components:
+  securitySchemes:
+    userToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Error:
+      description: Error con un código estable que el front traduce
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    ConnectionStatus:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [NOT_CONNECTED, CONNECTED, EXPIRED] }
+        candidateName: { type: [string, "null"], description: Nombre que muestra la cabecera de Computrabajo }
+        connectedAt: { type: [string, "null"], format: date-time }
+        lastValidatedAt: { type: [string, "null"], format: date-time }
+    ConnectAttempt:
+      type: object
+      required: [attemptId, state, startedAt]
+      additionalProperties: false
+      properties:
+        attemptId: { type: string, format: uuid }
+        state: { type: string, enum: [CONNECTING, CONNECTED, FAILED, CANCELLED] }
+        step: { type: [string, "null"], enum: [OPENING_BROWSER, WAITING_FOR_LOGIN, READING_PROFILE, SAVING_SESSION, null] }
+        stepLabel: { type: [string, "null"] }
+        errorCode: { type: [string, "null"] }
+        errorMessage: { type: [string, "null"] }
+        candidateName: { type: [string, "null"] }
+        startedAt: { type: string, format: date-time }
+    SessionCheck:
+      type: object
+      required: [result]
+      additionalProperties: false
+      properties:
+        result: { type: string, enum: [VALID, EXPIRED, NOT_CONNECTED, UNAVAILABLE] }
+    Error:
+      description: ProblemDetail (RFC 9457) con la propiedad `code`
+      type: object
+      required: [code, detail, status]
+      properties:
+        status: { type: integer }
+        detail: { type: string }
+        code:
+          type: string
+          description: ALREADY_CONNECTING, ATTEMPT_NOT_FOUND, BROWSER_NOT_READY, SCRAPER_UNAVAILABLE, WINDOW_CLOSED, LOGIN_TIMEOUT, CANCELLED, IDENTITY_UNREADABLE, BROWSER_FAILED, DATABASE_UNAVAILABLE

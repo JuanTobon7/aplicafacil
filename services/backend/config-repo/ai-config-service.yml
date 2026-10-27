@@ -1,0 +1,56 @@
+server:
+  port: 8086
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${AICONFIG_DB_USER:aiconfig_svc}
+    password: ${AICONFIG_DB_PASSWORD:aiconfig_svc}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: aiconfig
+  flyway:
+    schemas: aiconfig
+    default-schema: aiconfig
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+    listener:
+      simple:
+        # Un mensaje que falla 3 veces va a la DLQ (aplicafacil.dlx) en vez de reencolarse sin fin
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
+
+aplicafacil:
+  # AES-256-GCM de las API keys (misma llave que la sesión de LinkedIn). Obligatoria para arrancar.
+  session-encryption:
+    key: ${SESSION_ENCRYPTION_KEY:}
+    key-version: ${SESSION_ENCRYPTION_KEY_VERSION:1}
+  ai:
+    # Servicios que pueden leer la credencial descifrada en /internal/provider-configs/{id}
+    credential-readers: [mcp-gateway]
+    # Una solicitud de IA sin resultado en este tiempo se cierra como TIMED_OUT
+    request-timeout: 2m
+    max-configs-per-user: 20
+    # Tipos válidos. Agregar uno aquí y su adaptador en el mcp-gateway (MCP_PROVIDER_ADAPTERS); nada más.
+    provider-types:
+      - type: OPENAI
+        display-name: OpenAI (o API compatible)
+        allows-base-url: true
+        default-model: gpt-4.1-mini
+        suggested-models: [gpt-4.1-mini, gpt-4.1, gpt-4o-mini]
+      - type: OPENROUTER
+        display-name: OpenRouter
+        allows-base-url: false
+        default-model: openai/gpt-4.1-mini
+        suggested-models: [openai/gpt-4.1-mini, anthropic/claude-sonnet-4.5, google/gemini-2.5-flash, meta-llama/llama-3.3-70b-instruct]

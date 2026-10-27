@@ -1,0 +1,8 @@
+# Fase local: sin OpenAI configurado, los embeddings y el vector store quedan apagados
+# (los usará el matching de vacantes; se activan definiendo OPENAI_API_KEY y quitando estas líneas).
+spring:
+  ai:
+    model:
+      embedding: none
+    vectorstore:
+      type: none

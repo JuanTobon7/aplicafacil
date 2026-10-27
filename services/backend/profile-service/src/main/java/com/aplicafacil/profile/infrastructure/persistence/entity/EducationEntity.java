@@ -1,85 +1,46 @@
 package com.aplicafacil.profile.infrastructure.persistence.entity;
 
-import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/** Fila de {@code education}. Ciclo de vida controlado por {@link ProfileEntity} (cascade + orphanRemoval). */
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Un estudio del perfil. */
 @Entity
-@Table(name = "education")
+@Table(name = "profile_education")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EducationEntity {
 
     @Id
     private UUID id;
 
-    @Column(name = "institution_name", nullable = false, length = 100)
-    private String institutionName;
+    @Column(nullable = false, length = 200)
+    private String institution;
 
-    @Column(length = 250)
+    @Column(length = 200)
+    private String degree;
+
+    @Column(name = "field_of_study", length = 200)
+    private String fieldOfStudy;
+
+    @Column(name = "start_month", length = 7)
+    private YearMonth startMonth;
+
+    @Column(name = "end_month", length = 7)
+    private YearMonth endMonth;
+
     private String description;
-
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
-
-    @Column(name = "end_date")
-    private LocalDate endDate;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "profile_id", nullable = false)
-    private ProfileEntity profile;
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getInstitutionName() {
-        return institutionName;
-    }
-
-    public void setInstitutionName(String institutionName) {
-        this.institutionName = institutionName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
-    }
-
-    public ProfileEntity getProfile() {
-        return profile;
-    }
-
-    public void setProfile(ProfileEntity profile) {
-        this.profile = profile;
-    }
 }

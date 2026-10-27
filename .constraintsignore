@@ -1,0 +1,5 @@
+# Rutas exentas de tools/quality/floor-guard.mjs (un glob por línea). Cada entrada se revisa en el PR.
+
+# El propio guard: sus listas de patrones (TODO, @SuppressWarnings, skip…) se detectarían a sí mismas
+tools/quality/**
+

@@ -4,15 +4,28 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/** Fila de {@code skills}. Ciclo de vida controlado por {@link ProfileEntity} (cascade + orphanRemoval). */
+import com.aplicafacil.profile.domain.SkillCategory;
+import com.aplicafacil.profile.domain.SkillLevel;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Una skill del perfil; el orden lo lleva {@code position} ({@code @OrderColumn} del perfil). */
 @Entity
-@Table(name = "skills")
+@Table(name = "profile_skill")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SkillEntity {
 
     @Id
@@ -21,53 +34,14 @@ public class SkillEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 255)
-    private String description;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private SkillCategory category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private SkillLevel level;
 
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "profile_id", nullable = false)
-    private ProfileEntity profile;
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Integer getYearsOfExperience() {
-        return yearsOfExperience;
-    }
-
-    public void setYearsOfExperience(Integer yearsOfExperience) {
-        this.yearsOfExperience = yearsOfExperience;
-    }
-
-    public ProfileEntity getProfile() {
-        return profile;
-    }
-
-    public void setProfile(ProfileEntity profile) {
-        this.profile = profile;
-    }
 }

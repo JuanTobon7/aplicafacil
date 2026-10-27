@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/ai-request-result-event.schema.json",
+  "title": "ai.request.completed | ai.request.failed",
+  "description": "El mcp-gateway lo publica en aplicafacil.events. Quien publicó la solicitud (ai-config-service o profile-service) la correlaciona por requestId; los demás la ignoran, igual que una solicitud ya cerrada (idempotente).",
+  "type": "object",
+  "required": ["schemaVersion", "eventId", "eventType", "requestId", "configId", "userId", "correlationId", "occurredAt"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "enum": ["ai.request.completed", "ai.request.failed"] },
+    "requestId": { "type": "string", "format": "uuid" },
+    "configId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "output": {
+      "type": ["object", "null"],
+      "required": ["text", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "model": { "type": "string" },
+        "finishReason": { "type": ["string", "null"] },
+        "usage": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "inputTokens": { "type": ["integer", "null"] },
+            "outputTokens": { "type": ["integer", "null"] },
+            "totalTokens": { "type": ["integer", "null"] }
+          }
+        }
+      }
+    },
+    "error": {
+      "type": ["object", "null"],
+      "required": ["code", "message", "retryable"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "maxLength": 64 },
+        "message": { "type": "string", "maxLength": 500 },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "latencyMs": { "type": ["integer", "null"], "minimum": 0 },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

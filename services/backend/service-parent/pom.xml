@@ -76,7 +76,12 @@
         <!-- Reglas de arquitectura (puertos y adaptadores) verificadas en el build -->
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit</artifactId>
+            <artifactId>archunit-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.aplicafacil</groupId>
+            <artifactId>architecture-rules</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

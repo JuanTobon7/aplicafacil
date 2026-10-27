@@ -1,0 +1,102 @@
+openapi: 3.1.0
+info:
+  title: ai-config-service — API interna para el mcp-gateway
+  version: 1.0.0
+  description: |
+    Endpoints entre servicios (el api-gateway no los expone: solo enruta /api/ai/**).
+    Exigen un token de servicio de identity-service (`roles=[SERVICE]`) con `sub=mcp-gateway`.
+
+    - Las listas nunca incluyen la API key.
+    - `GET /internal/provider-configs/{configId}` es el ÚNICO punto que entrega la credencial descifrada, y solo
+      si `userId` coincide con el dueño (aislamiento por tenant). Responde con `Cache-Control: no-store`.
+servers:
+  - url: http://127.0.0.1:8086
+security:
+  - serviceToken: []
+paths:
+  /internal/provider-configs:
+    get:
+      summary: Configuraciones (sin credenciales) para reconciliar o listar las de un usuario
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          description: Si se envía, solo las del usuario. Sin él, todas (reconciliación).
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProviderConfigSummary" }
+        "401": { description: Sin token }
+        "403": { description: El token no es del mcp-gateway }
+  /internal/provider-configs/{configId}:
+    get:
+      summary: Configuración resuelta con la credencial descifrada
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: userId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResolvedProviderConfig" }
+        "404": { description: No existe o no pertenece a userId }
+components:
+  securitySchemes:
+    serviceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Parameters:
+      type: object
+      properties:
+        temperature: { type: [number, "null"], minimum: 0, maximum: 2 }
+        maxTokens: { type: [integer, "null"], minimum: 1 }
+        topP: { type: [number, "null"], minimum: 0, maximum: 1 }
+    ProviderConfigSummary:
+      type: object
+      required: [id, userId, providerType, displayName, enabled, model, version, status]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        providerType: { type: string }
+        displayName: { type: string }
+        enabled: { type: boolean }
+        model: { type: string }
+        version: { type: integer }
+        status: { enum: [PENDING, INITIALIZING, ACTIVE, FAILED, DISABLED] }
+        availableModels:
+          type: array
+          items: { type: string }
+    ResolvedProviderConfig:
+      type: object
+      required: [id, userId, providerType, displayName, enabled, model, parameters, version, apiKey]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        providerType: { type: string }
+        displayName: { type: string }
+        enabled: { type: boolean }
+        model: { type: string }
+        baseUrl: { type: [string, "null"] }
+        parameters: { $ref: "#/components/schemas/Parameters" }
+        version: { type: integer }
+        apiKey:
+          type: string
+          writeOnly: false
+          description: Secreto. El mcp-gateway lo mantiene solo en memoria y nunca lo registra.

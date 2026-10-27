@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/ai-provider-config-changed-event.schema.json",
+  "title": "ai.provider-config.*",
+  "description": "ai-config-service lo publica (outbox) en aplicafacil.events con routing key ai.provider-config.<created|updated|disabled|deleted|credential-rotated>. NUNCA lleva la API key: el mcp-gateway la pide a ai-config-service con un token de servicio.",
+  "type": "object",
+  "required": ["schemaVersion", "eventId", "eventType", "configId", "userId", "version", "providerType", "enabled", "correlationId", "occurredAt"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": {
+      "enum": [
+        "ai.provider-config.created",
+        "ai.provider-config.updated",
+        "ai.provider-config.disabled",
+        "ai.provider-config.deleted",
+        "ai.provider-config.credential-rotated"
+      ]
+    },
+    "configId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid", "description": "Dueño de la configuración (tenant)" },
+    "version": { "type": "integer", "minimum": 1, "description": "Versión de la configuración después del cambio" },
+    "providerType": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,31}$" },
+    "enabled": { "type": "boolean" },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/ai-request-command.schema.json",
+  "title": "ai.request.submit",
+  "description": "ai-config-service o profile-service (ADR 0007) lo publican (outbox) en aplicafacil.commands con routing key ai.request.submit. El mcp-gateway invoca el proveedor y responde con ai.request.completed o ai.request.failed (mismo requestId y correlationId). Si deadline ya pasó, se descarta sin llamar al proveedor.",
+  "type": "object",
+  "required": ["schemaVersion", "requestId", "configId", "userId", "correlationId", "messages", "submittedAt", "deadline"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "requestId": { "type": "string", "format": "uuid", "description": "Clave de idempotencia" },
+    "configId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "additionalProperties": false,
+        "properties": {
+          "role": { "enum": ["system", "user", "assistant"] },
+          "content": { "type": "string", "minLength": 1, "maxLength": 32000 }
+        }
+      }
+    },
+    "parameters": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": ["string", "null"], "maxLength": 200 },
+        "temperature": { "type": ["number", "null"], "minimum": 0, "maximum": 2 },
+        "maxTokens": { "type": ["integer", "null"], "minimum": 1, "maximum": 200000 },
+        "topP": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    },
+    "submittedAt": { "type": "string", "format": "date-time" },
+    "deadline": { "type": "string", "format": "date-time" }
+  }
+}

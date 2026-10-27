@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/ai-provider-test-command.schema.json",
+  "title": "ai.provider.test",
+  "description": "ai-config-service lo publica (outbox) en aplicafacil.commands con routing key ai.provider.test. El mcp-gateway ejecuta health_check y responde con ai.provider.test-completed y el mismo correlationId.",
+  "type": "object",
+  "required": ["schemaVersion", "commandId", "configId", "userId", "configVersion", "correlationId", "requestedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "commandId": { "type": "string", "format": "uuid" },
+    "configId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "configVersion": { "type": "integer", "minimum": 1 },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "requestedAt": { "type": "string", "format": "date-time" }
+  }
+}

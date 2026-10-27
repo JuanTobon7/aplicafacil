@@ -2,4 +2,5 @@ spring:
   application:
     name: api-gateway
   config:
-    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+    # Fase desplegada: config-server. Local: los mismos archivos de config-repo leídos del disco (CONFIG_IMPORT, ver dev-up.ps1)
+    import: "${CONFIG_IMPORT:configserver:${CONFIG_SERVER_URL:http://localhost:8888}}"

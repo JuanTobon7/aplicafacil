@@ -34,6 +34,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Worker de búsquedas: linkedin-service (sesión) y scraper (portales públicos) con token de servicio -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+
         <!-- Mensajería: eventos de vacantes scrapeadas / postulaciones -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -47,6 +53,16 @@
         </dependency>
 
         <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-oauth2-resource-server-test</artifactId>

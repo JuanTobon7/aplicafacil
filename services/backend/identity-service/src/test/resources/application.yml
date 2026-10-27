@@ -1,0 +1,35 @@
+# Reemplaza al application.yml principal en los tests: sin config-server ni Eureka.
+# La base de datos la provee Testcontainers (@ServiceConnection).
+spring:
+  application:
+    name: identity-service
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: identity
+  flyway:
+    schemas: identity
+    default-schema: identity
+
+aplicafacil:
+  identity:
+    issuer: http://127.0.0.1:9000
+    audience: aplicafacil-api
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    login-code-ttl: 60s
+    linkedin-service-url: http://127.0.0.1:1
+    service-clients: [linkedin-service]
+
+eureka:
+  client:
+    enabled: false

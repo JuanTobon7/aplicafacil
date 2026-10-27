@@ -1,0 +1,95 @@
+[project]
+name = "aplicafacil-mcp"
+version = "0.1.0"
+description = "mcp-gateway de AplicaFacil: servidor MCP (Django + SDK oficial mcp) para los proveedores de IA de cada usuario (ADR 0005)"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=6.1,<6.2",
+    "mcp>=2.3,<3",
+    "uvicorn>=0.54,<1",
+    "httpx>=0.28,<1",
+    "pydantic>=2.14,<3",
+    "pyjwt[crypto]>=2.15,<3",
+    "aio-pika>=10.1,<11",
+    "prometheus-client>=0.26,<1",
+    # SDK del adaptador de OpenAI; solo lo importa providers/openai_adapter.py
+    "openai>=3.31,<4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "pytest-asyncio>=1.3",
+    "jsonschema>=4.25",
+    "testcontainers[rabbitmq]>=4.13",
+    "ruff>=0.17.1",
+    "import-linter>=2.15",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aplicafacil_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: necesita Docker (RabbitMQ con Testcontainers); se omite si Docker no está disponible",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:aio_pika.*",
+]
+
+# ── Calidad (CONSTRAINTS.md) ─────────────────────────────────────────────
+# Solo tamaño y complejidad: no es un linter de estilo. tools/quality/ratchet.mjs compara contra quality-baseline.json.
+[tool.ruff]
+target-version = "py313"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["C90", "PLR0911", "PLR0912", "PLR0913", "PLR0915"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-returns = 6
+max-statements = 40
+
+# Capas (ADR 0005): el dominio no conoce nada; la orquestación no conoce adaptadores
+[tool.importlinter]
+root_package = "aplicafacil_mcp"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Capas hexagonales"
+type = "layers"
+layers = [
+    "aplicafacil_mcp.asgi",
+    "aplicafacil_mcp.container",
+    "aplicafacil_mcp.mcp_server | aplicafacil_mcp.web | aplicafacil_mcp.infrastructure",
+    "aplicafacil_mcp.application",
+    "aplicafacil_mcp.providers",
+    "aplicafacil_mcp.contracts | aplicafacil_mcp.domain",
+]
+ignore_imports = [
+    # Logs y métricas son transversales
+    "aplicafacil_mcp.** -> aplicafacil_mcp.metrics",
+    "aplicafacil_mcp.** -> aplicafacil_mcp.logging_setup",
+    "aplicafacil_mcp.** -> aplicafacil_mcp.config",
+    # Excepción W1 de CONSTRAINTS.md: las vistas de Django no admiten inyección por constructor
+    "aplicafacil_mcp.web.views -> aplicafacil_mcp.container",
+]
+
+[[tool.importlinter.contracts]]
+name = "El dominio no depende de frameworks ni SDK"
+type = "forbidden"
+source_modules = ["aplicafacil_mcp.domain"]
+forbidden_modules = ["django", "mcp", "openai", "httpx", "httpx2", "aio_pika", "pydantic"]

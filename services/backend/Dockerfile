@@ -10,11 +10,12 @@ COPY mvnw pom.xml ./
 COPY libs/ libs/
 COPY platform/ platform/
 COPY service-parent/ service-parent/
-COPY auth-service/ auth-service/
-COPY people-service/ people-service/
+COPY identity-service/ identity-service/
+COPY linkedin-service/ linkedin-service/
 COPY profile-service/ profile-service/
 COPY jobs-service/ jobs-service/
 COPY automation-service/ automation-service/
+COPY ai-config-service/ ai-config-service/
 RUN --mount=type=cache,target=/root/.m2 \
     chmod +x mvnw && ./mvnw -q -B -DskipTests -pl ${MODULE} -am package \
     && cp ${MODULE}/target/*.jar /workspace/app.jar

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/job-search-requested-command.schema.json",
+  "title": "jobs.search.requested",
+  "description": "jobs-service lo publica (outbox) en aplicafacil.commands para que su worker ejecute un intento de una búsqueda de vacantes. Solo lleva ids: los criterios están en jobs.job_search y la sesión de LinkedIn nunca viaja por la cola. Un reintento se publica con routing key jobs.search.retry.{n} y vuelve con jobs.search.requested al vencer la espera. Idempotente por (searchId, attempt).",
+  "type": "object",
+  "required": ["schemaVersion", "commandId", "searchId", "userId", "attempt", "requestedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "commandId": { "type": "string", "format": "uuid" },
+    "searchId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "attempt": { "type": "integer", "minimum": 1, "description": "Intento a ejecutar (1 = el primero)" },
+    "requestedAt": { "type": "string", "format": "date-time" }
+  }
+}

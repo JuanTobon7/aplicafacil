@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tamaño, complejidad y acoplamiento del código Java (CONSTRAINTS.md). Solo estas reglas: no es un linter de estilo.
+  Los umbrales y el porqué de cada número están en CONSTRAINTS.md; si se cambian aquí, se cambian allá.
+-->
+<ruleset name="aplicafacil-quality"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>Tamaño, complejidad y acoplamiento (AplicaFacil)</description>
+
+    <!-- Líneas por método: sentencias lógicas (NCSS), no cuenta comentarios ni líneas en blanco -->
+    <rule ref="category/java/design.xml/NcssCount">
+        <properties>
+            <property name="methodReportLevel" value="30"/>
+            <property name="classReportLevel" value="300"/>
+        </properties>
+    </rule>
+
+    <!-- Caminos independientes por método -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="methodReportLevel" value="10"/>
+            <property name="classReportLevel" value="80"/>
+        </properties>
+    </rule>
+
+    <!-- Qué tan difícil es leer un método (anidamiento, saltos) -->
+    <rule ref="category/java/design.xml/CognitiveComplexity">
+        <properties>
+            <property name="reportLevel" value="15"/>
+        </properties>
+    </rule>
+
+    <!-- Más de 6 parámetros: falta un objeto -->
+    <rule ref="category/java/design.xml/ExcessiveParameterList">
+        <properties>
+            <property name="minimum" value="7"/>
+        </properties>
+    </rule>
+
+    <!-- Acoplamiento: tipos distintos que usa una clase -->
+    <rule ref="category/java/design.xml/CouplingBetweenObjects">
+        <properties>
+            <property name="threshold" value="20"/>
+        </properties>
+    </rule>
+
+    <!-- Demasiadas dependencias importadas en un archivo -->
+    <rule ref="category/java/design.xml/ExcessiveImports">
+        <properties>
+            <property name="minimum" value="35"/>
+        </properties>
+    </rule>
+
+    <!-- Clase que concentra demasiada lógica y datos -->
+    <rule ref="category/java/design.xml/GodClass"/>
+
+    <!-- Anidamiento de if -->
+    <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
+        <properties>
+            <property name="problemDepth" value="4"/>
+        </properties>
+    </rule>
+</ruleset>

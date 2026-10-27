@@ -1,60 +1,37 @@
 package com.aplicafacil.profile.domain;
 
-import static com.aplicafacil.profile.domain.DomainValidation.optionalText;
-import static com.aplicafacil.profile.domain.DomainValidation.requireNonNull;
-import static com.aplicafacil.profile.domain.DomainValidation.requireText;
-
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Habilidad del perfil. Solo se modifica a través de {@link Profile}. */
-public final class Skill {
+/**
+ * Una habilidad del perfil (entidad: tiene id propio). Dos skills con el mismo nombre, sin importar mayúsculas, son la
+ * misma ({@link #key()}).
+ *
+ * @param category          {@code null} = sin clasificar
+ * @param level             {@code null} = no declarado
+ * @param yearsOfExperience {@code null} = no declarado
+ */
+public record Skill(UUID id, String name, SkillCategory category, SkillLevel level, Integer yearsOfExperience) {
 
-    public static final int MAX_NAME_LENGTH = 100;
-    public static final int MAX_DESCRIPTION_LENGTH = 255;
-
-    private final UUID id;
-    private final String name;
-    private final String description;
-    private final Integer yearsOfExperience;
-
-    public Skill(UUID id, String name, String description, Integer yearsOfExperience) {
-        this.id = requireNonNull(id, "id");
-        this.name = requireText(name, "skill.name", MAX_NAME_LENGTH);
-        this.description = optionalText(description, "skill.description", MAX_DESCRIPTION_LENGTH);
-        if (yearsOfExperience != null && yearsOfExperience < 0) {
-            throw new IllegalArgumentException("skill.yearsOfExperience no puede ser negativo");
+    public Skill {
+        Objects.requireNonNull(id);
+        name = Text.required(name, 100, "name");
+        if (yearsOfExperience != null && (yearsOfExperience < 0 || yearsOfExperience > 60)) {
+            yearsOfExperience = null;
         }
-        this.yearsOfExperience = yearsOfExperience;
     }
 
-    public static Skill create(String name, String description, Integer yearsOfExperience) {
-        return new Skill(UUID.randomUUID(), name, description, yearsOfExperience);
+    public static Skill of(String name, SkillCategory category, SkillLevel level, Integer yearsOfExperience) {
+        return new Skill(UUID.randomUUID(), name, category, level, yearsOfExperience);
     }
 
-    public UUID getId() {
-        return id;
+    public static Skill named(String name) {
+        return of(name, null, null, null);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public Integer getYearsOfExperience() {
-        return yearsOfExperience;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        return this == other || (other instanceof Skill skill && id.equals(skill.id));
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    /** Clave de deduplicación. */
+    public String key() {
+        return name.toLowerCase(Locale.ROOT);
     }
 }

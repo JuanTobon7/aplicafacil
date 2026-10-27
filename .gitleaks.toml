@@ -1,0 +1,21 @@
+# gitleaks (CONSTRAINTS.md, dimensión Seguridad). Reglas por defecto + exclusiones explicadas una por una.
+# Agregar una exclusión aquí es aflojar el piso: va con su motivo y se revisa en el PR.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Exclusiones del repo"
+paths = [
+  # Dependencias y salidas de build: código de terceros, no nuestro
+  '''(^|/)node_modules/''',
+  '''(^|/)\.venv/''',
+  '''(^|/)target/''',
+  '''(^|/)dist/''',
+  '''^logs/''',
+  # Secretos locales de desarrollo: .gitignore los excluye y nunca se versionan
+  '''^infra/\.env$''',
+]
+regexes = [
+  # Claves falsas de las pruebas (nunca reales): sk-test-…
+  '''sk-test-[A-Za-z0-9_-]+''',
+]

@@ -1,0 +1,72 @@
+# Gateway en la fase local: rutas fijas a 127.0.0.1 (sin Eureka), token local obligatorio y
+# servicio del build de React (mismo origen que la API: sin CORS).
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: identity-service
+              uri: http://127.0.0.1:9000
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=1
+            - id: linkedin-service
+              uri: http://127.0.0.1:8085
+              predicates:
+                - Path=/api/linkedin/**
+              filters:
+                - StripPrefix=1
+            # Sesión de candidato de Computrabajo (ADR 0008): /api/computrabajo/status → /computrabajo/status
+            - id: computrabajo-service
+              uri: http://127.0.0.1:8087
+              predicates:
+                - Path=/api/computrabajo/**
+              filters:
+                - StripPrefix=1
+            - id: profile-service
+              uri: http://127.0.0.1:8084
+              predicates:
+                - Path=/api/profile/**
+              filters:
+                - StripPrefix=2
+            - id: jobs-service
+              uri: http://127.0.0.1:8082
+              predicates:
+                - Path=/api/jobs/**
+              filters:
+                - StripPrefix=2
+            - id: automation-service
+              uri: http://127.0.0.1:8083
+              predicates:
+                - Path=/api/automation/**
+              filters:
+                - StripPrefix=2
+            # Proveedores de IA (ADR 0005): /api/ai/provider-configs → /ai/provider-configs
+            - id: ai-config-service
+              uri: http://127.0.0.1:8086
+              predicates:
+                - Path=/api/ai/**
+              filters:
+                - StripPrefix=1
+  http:
+    clients:
+      connect-timeout: 3s
+      # SSE de conexión (hasta 5 min) y validación headless de la sesión
+      read-timeout: 10m
+  web:
+    resources:
+      static-locations: file:${FRONT_DIST:../../../apps/web/dist}/
+  mvc:
+    async:
+      request-timeout: 10m
+
+aplicafacil:
+  local-access:
+    enabled: true
+    allowed-hosts: [127.0.0.1:8080, localhost:8080]
+    allowed-origins: [http://127.0.0.1:8080, http://localhost:8080, http://localhost:5173, http://127.0.0.1:5173]
+    front-dist: ${FRONT_DIST:../../../apps/web/dist}
+  cors:
+    allowed-origins: http://127.0.0.1:8080,http://localhost:8080,http://localhost:5173
