@@ -22,7 +22,7 @@ class CorsConfig {
         var cors = new CorsConfiguration();
         cors.setAllowedOrigins(allowedOrigins);
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Local-Token"));
         cors.setAllowCredentials(true);
 
         var source = new UrlBasedCorsConfigurationSource();

@@ -1,0 +1,6 @@
+{
+  "enforceFrom": "2026-10-30",
+  "metrics": {
+    "py:mcp-gateway:PLR0913": 1
+  }
+}

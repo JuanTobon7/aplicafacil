@@ -1,13 +1,15 @@
-# Uso (desde infra/, con .env creado a partir de .env.example):
-#   docker compose up -d                  → solo infraestructura (los servicios Java corren en el IDE)
-#   docker compose --profile apps up -d   → infraestructura + todos los servicios Java en contenedores
+# Infraestructura local de AplicaFacil (ADR 0003).
 #
-# Puertos en el host:
-#   postgres 5434 · rabbitmq 5672 / 15672 (UI) · redis 6380
-#   config-server 8888 · discovery-server 8761 · api-gateway 8080 · auth-service 9000
-#   people 8081 · jobs 8082 · automation 8083 · profile 8084
+# Uso (desde infra/, con .env creado a partir de .env.example):
+#   docker compose up -d                   → Postgres + RabbitMQ + Redis
+#   docker compose --profile tools up -d   → además pgAdmin (http://127.0.0.1:5050)
+#   docker compose --profile apps up -d    → además los servicios Java en contenedores (solo para la
+#                                            fase desplegada: linkedin-service NO va aquí porque abre un
+#                                            navegador visible y corre en el host)
+#
+# Todos los puertos se publican SOLO en 127.0.0.1: nada queda expuesto en la red local.
+#   postgres ${POSTGRES_PORT:-5434} · rabbitmq 5672 / 15672 (UI) · redis 6380 · pgadmin 5050
 
-# Nombre propio: no compartir proyecto ni volúmenes con el compose del monolito anterior.
 name: aplicafacil-platform
 
 x-backend-env: &backend-env
@@ -16,44 +18,51 @@ x-backend-env: &backend-env
   DB_HOST: postgres
   DB_PORT: 5432
   DB_NAME: ${POSTGRES_DB}
-  AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
-  PEOPLE_DB_PASSWORD: ${PEOPLE_DB_PASSWORD}
+  IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+  LINKEDIN_DB_PASSWORD: ${LINKEDIN_DB_PASSWORD}
+  COMPUTRABAJO_DB_PASSWORD: ${COMPUTRABAJO_DB_PASSWORD:-computrabajo_svc}
   PROFILE_DB_PASSWORD: ${PROFILE_DB_PASSWORD}
   JOBS_DB_PASSWORD: ${JOBS_DB_PASSWORD}
+  AICONFIG_DB_PASSWORD: ${AICONFIG_DB_PASSWORD:-aiconfig_svc}
   RABBITMQ_HOST: rabbitmq
   RABBITMQ_USER: ${RABBITMQ_USER}
   RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
   REDIS_HOST: redis
   REDIS_PORT: 6379
-  # El token trae iss = URL pública (la que ve el navegador); las llaves y el
-  # endpoint de tokens se consultan por la red interna
-  AUTH_ISSUER_URI: http://localhost:9000
-  AUTH_JWKS_URI: http://auth-service:9000/oauth2/jwks
-  AUTH_SERVER_URL: http://auth-service:9000
+  # El token trae iss = URL pública de identity-service; las llaves se consultan por la red interna
+  AUTH_ISSUER_URI: http://127.0.0.1:9000
+  AUTH_JWKS_URI: http://identity-service:9000/.well-known/jwks.json
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com}
 
 x-backend-service: &backend-service
   restart: on-failure
   depends_on:
-    - config-server
-    - discovery-server
+    postgres:
+      condition: service_healthy
+    config-server:
+      condition: service_started
+    discovery-server:
+      condition: service_started
 
 services:
-  # ═══════════════════════ Infraestructura ═══════════════════════
+  # ═══════════════════════ Infraestructura (siempre) ═══════════════════════
   postgres:
+    # PostgreSQL 18 + pgvector (embeddings de profile-service)
     image: pgvector/pgvector:0.8.6-pg18
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
-      PEOPLE_DB_PASSWORD: ${PEOPLE_DB_PASSWORD}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      LINKEDIN_DB_PASSWORD: ${LINKEDIN_DB_PASSWORD}
+      COMPUTRABAJO_DB_PASSWORD: ${COMPUTRABAJO_DB_PASSWORD:-computrabajo_svc}
       PROFILE_DB_PASSWORD: ${PROFILE_DB_PASSWORD}
       JOBS_DB_PASSWORD: ${JOBS_DB_PASSWORD}
+      AICONFIG_DB_PASSWORD: ${AICONFIG_DB_PASSWORD:-aiconfig_svc}
     ports:
-      - "5434:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5434}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -70,18 +79,40 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:8.10
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
 
-  # ═══════════════════════ Plataforma Spring Cloud ═══════════════════════
+  # ═══════════════════════ Herramientas (--profile tools) ═══════════════════════
+  pgadmin:
+    profiles: [tools]
+    image: dpage/pgadmin4:9.8
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ═══════════════════════ Fase desplegada (--profile apps) ═══════════════════════
   config-server:
     profiles: [apps]
     build:
@@ -92,7 +123,7 @@ services:
     environment:
       CONFIG_REPO_LOCATION: file:/config-repo/
     ports:
-      - "8888:8888"
+      - "127.0.0.1:8888:8888"
     volumes:
       - ../services/backend/config-repo:/config-repo:ro
 
@@ -106,7 +137,7 @@ services:
     environment:
       EUREKA_HOSTNAME: discovery-server
     ports:
-      - "8761:8761"
+      - "127.0.0.1:8761:8761"
 
   api-gateway:
     <<: *backend-service
@@ -117,42 +148,24 @@ services:
         MODULE: platform/api-gateway
     environment:
       <<: *backend-env
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
-  # ═══════════════════════ Identidad ═══════════════════════
-  # Authorization Server OAuth 2.1 / OIDC. El navegador lo usa directo en
-  # http://localhost:9000 (login, registro, /oauth2/*), no a través del gateway.
-  auth-service:
+  identity-service:
     <<: *backend-service
     profiles: [apps]
     build:
       context: ../services/backend
       args:
-        MODULE: auth-service
+        MODULE: identity-service
     environment:
       <<: *backend-env
-      AUTOMATION_CLIENT_SECRET: ${AUTOMATION_CLIENT_SECRET}
-      MCP_GATEWAY_CLIENT_SECRET: ${MCP_GATEWAY_CLIENT_SECRET}
-      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-}
-      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-}
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY}
+      LINKEDIN_OAUTH_ENABLED: ${LINKEDIN_OAUTH_ENABLED:-false}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
     ports:
-      - "9000:9000"
-
-  # ═══════════════════════ Microservicios ═══════════════════════
-  people-service:
-    <<: *backend-service
-    profiles: [apps]
-    build:
-      context: ../services/backend
-      args:
-        MODULE: people-service
-    environment:
-      <<: *backend-env
-    ports:
-      - "8081:8081"
+      - "127.0.0.1:9000:9000"
 
   profile-service:
     <<: *backend-service
@@ -164,7 +177,7 @@ services:
     environment:
       <<: *backend-env
     ports:
-      - "8084:8084"
+      - "127.0.0.1:8084:8084"
 
   jobs-service:
     <<: *backend-service
@@ -176,7 +189,7 @@ services:
     environment:
       <<: *backend-env
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
 
   automation-service:
     <<: *backend-service
@@ -187,11 +200,65 @@ services:
         MODULE: automation-service
     environment:
       <<: *backend-env
-      AUTOMATION_CLIENT_SECRET: ${AUTOMATION_CLIENT_SECRET}
       MCP_GATEWAY_URL: http://mcp-gateway:8000
     ports:
-      - "8083:8083"
+      - "127.0.0.1:8083:8083"
+
+  ai-config-service:
+    <<: *backend-service
+    profiles: [apps]
+    build:
+      context: ../services/backend
+      args:
+        MODULE: ai-config-service
+    environment:
+      <<: *backend-env
+      SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY}
+      SESSION_ENCRYPTION_KEY_VERSION: ${SESSION_ENCRYPTION_KEY_VERSION:-1}
+    ports:
+      - "127.0.0.1:8086:8086"
+
+  # Servidor MCP (Python/Django, ADR 0005). Se registra en Eureka con un hostname que los demás
+  # contenedores resuelven (el nombre del servicio), no con el id del contenedor.
+  mcp-gateway:
+    profiles: [apps]
+    build:
+      context: ../services/mcp-gateway
+    restart: on-failure
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8000
+      MCP_RESOURCE_URL: http://127.0.0.1:8000/mcp
+      MCP_ALLOWED_HOSTS: "127.0.0.1:*,localhost:*,mcp-gateway:*"
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,mcp-gateway"
+      AUTH_ISSUER_URI: http://127.0.0.1:9000
+      AUTH_JWKS_URI: http://identity-service:9000/.well-known/jwks.json
+      IDENTITY_SERVICE_URL: http://identity-service:9000
+      SERVICE_CLIENT_SECRET: ${SERVICE_CLIENT_SECRET}
+      AI_CONFIG_SERVICE_URL: lb://ai-config-service
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      EUREKA_ENABLED: "true"
+      EUREKA_URL: http://discovery-server:8761/eureka/
+      EUREKA_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: mcp-gateway
+      MCP_CREDENTIAL_TTL_SECONDS: ${MCP_CREDENTIAL_TTL_SECONDS:-3600}
+      MCP_RECONCILE_INTERVAL_SECONDS: ${MCP_RECONCILE_INTERVAL_SECONDS:-300}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/live',timeout=3).status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
   rabbitmq_data:
+  pgadmin_data:

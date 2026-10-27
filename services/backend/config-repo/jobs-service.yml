@@ -29,3 +29,24 @@ spring:
       chat:
         options:
           model: ${CHAT_MODEL:gpt-4.1-mini}
+
+aplicafacil:
+  jobs:
+    # Token de servicio (sub=jobs-service) para linkedin-service y el scraper
+    identity-service-url: ${IDENTITY_SERVICE_URL:http://127.0.0.1:9000}
+    service-client-secret: ${SERVICE_CLIENT_SECRET:}
+    # LinkedIn: con la sesión del usuario, a través de linkedin-service (dueño de la sesión cifrada)
+    linkedin-service-url: ${LINKEDIN_SERVICE_URL:http://127.0.0.1:8085}
+    # Portales públicos (Computrabajo): directo al scraper
+    scraper-url: ${SCRAPER_URL:http://127.0.0.1:8090}
+    # Una búsqueda recorre varias páginas con pausas: puede tardar minutos
+    search-timeout: 7m
+    worker:
+      enabled: ${JOB_SEARCH_WORKER_ENABLED:true}
+      # Consumidores de jobs-service.job-searches (RabbitMQ) por instancia
+      # Cada búsqueda abre un Chromium headless en el scraper
+      concurrency: 2
+      max-attempts: 3
+      # Espera antes del intento n: retry-backoff · 2^(n-2), tope max-retry-backoff (colas de espera con TTL)
+      retry-backoff: 30s
+      max-retry-backoff: 10m

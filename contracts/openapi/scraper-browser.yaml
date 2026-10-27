@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: scraper — API de navegador (interna)
+  version: 0.1.0
+  description: |
+    Contrato entre linkedin-service (Java, proxy), computrabajo-service (sesión de candidato), jobs-service (búsquedas
+    públicas) y el scraper (NestJS + Playwright para Node, implementación). ADR 0003 / ADR 0004 / ADR 0006 / ADR 0008.
+
+    Reglas:
+    - Solo escucha en 127.0.0.1 y exige un token de servicio (JWT de identity-service con roles=[SERVICE]).
+    - El scraper NO tiene base de datos y NUNCA escribe el storageState en disco ni en logs: lo recibe en la
+      petición, crea un contexto NO persistente (newContext({storageState})) y devuelve el estado renovado
+      en la respuesta. El servicio dueño de la sesión (linkedin-service, computrabajo-service) lo cifra y lo guarda
+      en PostgreSQL.
+    - Las operaciones con sesión van por HTTP (no por RabbitMQ) para que la sesión nunca quede en una cola.
+servers:
+  - url: http://127.0.0.1:8090
+security:
+  - serviceToken: []
+paths:
+  /health:
+    get:
+      summary: Estado del navegador (Chromium se descarga en el primer arranque)
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [browser]
+                properties:
+                  browser: { type: string, enum: [INSTALLING, READY, FAILED] }
+                  detail: { type: string }
+
+  /sessions/login:
+    post:
+      summary: Abre Chromium visible en la página oficial de LinkedIn y espera el inicio de sesión
+      description: |
+        Respuesta en streaming NDJSON (una línea JSON por evento). Primero eventos `step`; al final
+        exactamente un `result` o un `error`. El usuario inicia sesión manualmente (2FA y captcha incluidos).
+        El scraper nunca ve ni recibe la contraseña: solo observa la URL y la cookie li_at.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attemptId]
+              properties:
+                attemptId: { type: string, format: uuid }
+                loginUrl: { type: string, default: https://www.linkedin.com/login }
+                timeoutMs: { type: integer, default: 300000 }
+      responses:
+        "200":
+          content:
+            application/x-ndjson:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/StepEvent"
+                  - $ref: "#/components/schemas/LoginResultEvent"
+                  - $ref: "#/components/schemas/ErrorEvent"
+        "409": { description: Ya hay un inicio de sesión en curso (ALREADY_CONNECTING) }
+        "503": { description: Chromium aún no está listo (BROWSER_NOT_READY) }
+
+  /sessions/login/{attemptId}:
+    delete:
+      summary: Cancela el inicio de sesión y cierra la ventana
+      parameters:
+        - { name: attemptId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "202": { description: Cancelación solicitada }
+
+  /sessions/validate:
+    post:
+      summary: Valida una sesión guardada en un contexto headless no persistente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionRequest" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionResponse" }
+
+  /sessions/read-profile:
+    post:
+      summary: Lee el perfil completo con la sesión ("Sincronizar de nuevo")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionRequest" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SessionResponse"
+                  - type: object
+                    properties:
+                      profile: { $ref: "#/components/schemas/ProfileSnapshot" }
+
+  /portals/{portal}/sessions/login:
+    post:
+      summary: Igual que /sessions/login, para el portal indicado (linkedin, computrabajo)
+      description: |
+        En `computrabajo` abre candidato.{país}.computrabajo.com/acceso/ (también con Google); el login termina con la
+        cookie AspNet.SharedCookie fuera de las páginas de acceso. El `result` trae `identity: { name }` (el nombre de
+        la cabecera). Lo llama computrabajo-service.
+      parameters:
+        - { name: portal, in: path, required: true, schema: { type: string, enum: [linkedin, computrabajo] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attemptId]
+              properties:
+                attemptId: { type: string, format: uuid }
+                timeoutMs: { type: integer, default: 300000 }
+      responses:
+        "200":
+          content:
+            application/x-ndjson:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/StepEvent"
+                  - type: object
+                    required: [type, identity, storageState]
+                    properties:
+                      type: { const: result }
+                      identity:
+                        type: object
+                        description: Identidad del portal (en Computrabajo, el nombre de la cabecera)
+                      profile: { $ref: "#/components/schemas/ProfileSnapshot" }
+                      storageState: { type: object }
+                  - $ref: "#/components/schemas/ErrorEvent"
+
+  /portals/{portal}/sessions/login/{attemptId}:
+    delete:
+      summary: Cancela el inicio de sesión y cierra la ventana
+      parameters:
+        - { name: portal, in: path, required: true, schema: { type: string } }
+        - { name: attemptId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "202": { description: Cancelación solicitada }
+
+  /portals/{portal}/sessions/validate:
+    post:
+      summary: Valida una sesión guardada del portal en un contexto headless no persistente
+      parameters:
+        - { name: portal, in: path, required: true, schema: { type: string, enum: [linkedin, computrabajo] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionRequest" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionResponse" }
+
+  /portals/{portal}/jobs/search:
+    post:
+      summary: Busca ofertas en un portal y recorre las cards del listado (ADR 0006)
+      description: |
+        Headless y con un contexto NO persistente. `linkedin` exige `storageState` (lo envía linkedin-service, dueño
+        de la sesión); `computrabajo` es público y lo llama jobs-service directamente, sin `storageState`.
+        Clientes permitidos: linkedin-service, computrabajo-service y jobs-service.
+      parameters:
+        - { name: portal, in: path, required: true, schema: { type: string, enum: [linkedin, computrabajo] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [criteria]
+              properties:
+                criteria: { $ref: "#/components/schemas/JobSearchCriteria" }
+                storageState: { $ref: "#/components/schemas/StorageState" }
+      responses:
+        "200":
+          description: Resultado (valid=false si la sesión venció; no se buscó)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobSearchResult" }
+        "400": { description: "INVALID_REQUEST o SESSION_REQUIRED", content: { application/json: { schema: { $ref: "#/components/schemas/ErrorBody" } } } }
+        "404": { description: UNKNOWN_PORTAL }
+        "502": { description: "SEARCH_FAILED: el listado no apareció (el sitio cambió o bloqueó)" }
+        "503": { description: BROWSER_NOT_READY }
+components:
+  securitySchemes:
+    serviceToken: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    JobSearchCriteria:
+      type: object
+      required: [keywords]
+      properties:
+        keywords: { type: string, minLength: 2, maxLength: 200 }
+        location: { type: [string, "null"], maxLength: 120 }
+        maxResults: { type: integer, minimum: 1, maximum: 200, default: 25 }
+        postedWithinDays:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 30
+          description: Computrabajo solo filtra por 1, 3, 7, 15 o 30 días; se usa el menor que cubra el pedido
+        remote:
+          type: boolean
+          default: false
+          description: Solo ofertas remotas (LinkedIn f_WT=2; Computrabajo /trabajo-de-{q}-en-remoto, sin lugar)
+    JobCard:
+      type: object
+      required: [externalId, url, title, company, quickApply]
+      properties:
+        externalId: { type: string, description: Id de la oferta en el portal (clave de deduplicación) }
+        url: { type: string, format: uri }
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Espacios normalizados y nunca su propio texto repetido (los portales lo duplican para lectores de pantalla). Una card que no cumple se descarta.
+        company: { type: string }
+        location: { type: [string, "null"] }
+        postedText: { type: [string, "null"], description: "Texto o fecha del portal ('hace 2 días', '2026-10-14')" }
+        salaryText: { type: [string, "null"] }
+        quickApply: { type: boolean, description: Easy Apply / postulación rápida dentro del portal }
+    JobSearchResult:
+      type: object
+      required: [valid, jobs, pagesVisited]
+      properties:
+        valid: { type: boolean }
+        jobs: { type: array, items: { $ref: "#/components/schemas/JobCard" } }
+        pagesVisited: { type: integer }
+        storageState: { $ref: "#/components/schemas/StorageState", description: Renovado; solo si el portal usó sesión }
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    StorageState:
+      description: storageState de Playwright tal cual (cookies + origins). Secreto; nunca se loguea.
+      type: object
+    SessionRequest:
+      type: object
+      required: [storageState]
+      properties:
+        storageState: { $ref: "#/components/schemas/StorageState" }
+    SessionResponse:
+      type: object
+      required: [valid]
+      properties:
+        valid: { type: boolean, description: false = la sesión expiró (redirección al login, verificación o sin li_at) }
+        storageState: { $ref: "#/components/schemas/StorageState", description: Estado renovado; solo si valid=true }
+    StepEvent:
+      type: object
+      required: [type, step]
+      properties:
+        type: { const: step }
+        step: { type: string, enum: [OPENING_BROWSER, WAITING_FOR_LOGIN, READING_PROFILE] }
+    LoginResultEvent:
+      type: object
+      required: [type, identity, profile, storageState]
+      properties:
+        type: { const: result }
+        identity: { $ref: "#/components/schemas/LinkedInIdentity" }
+        profile: { $ref: "#/components/schemas/ProfileSnapshot" }
+        storageState: { $ref: "#/components/schemas/StorageState" }
+    ErrorEvent:
+      type: object
+      required: [type, code, message]
+      properties:
+        type: { const: error }
+        code:
+          type: string
+          enum: [WINDOW_CLOSED, LOGIN_TIMEOUT, CANCELLED, IDENTITY_UNREADABLE, BROWSER_FAILED, BROWSER_NOT_READY]
+        message: { type: string }
+    LinkedInIdentity:
+      description: Igual que com.aplicafacil.linkedin.contract.LinkedInIdentity
+      type: object
+      required: [source, memberUrn, emailVerified, basics]
+      properties:
+        source: { const: SESSION }
+        memberUrn: { type: string, pattern: "^urn:li:fsd_profile:" }
+        oidcSub: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+        emailVerified: { type: boolean }
+        basics:
+          type: object
+          properties:
+            firstName: { type: [string, "null"] }
+            lastName: { type: [string, "null"] }
+            headline: { type: [string, "null"] }
+            photoUrl: { type: [string, "null"] }
+            publicProfileUrl: { type: [string, "null"] }
+            location: { type: [string, "null"] }
+    ProfileSnapshot:
+      description: Igual que com.aplicafacil.linkedin.contract.ProfileSnapshot (fechas "YYYY-MM")
+      type: object
+      required: [complete, missingSections]
+      properties:
+        summary: { type: [string, "null"] }
+        experience: { type: array, items: { type: object } }
+        education: { type: array, items: { type: object } }
+        skills: { type: array, items: { type: string } }
+        languages: { type: array, items: { type: object } }
+        complete: { type: boolean }
+        missingSections: { type: array, items: { type: string } }

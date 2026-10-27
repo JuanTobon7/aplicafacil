@@ -37,7 +37,177 @@ channels:
         payload:
           $ref: "../schemas/user-registered-event.schema.json"
 
+  # Una cola durable por consumidor: cada servicio borra sus datos de la persona (idempotente).
+  userDeleted:
+    address: "{consumer}.user-deleted"
+    description: |
+      Exchange aplicafacil.events, routing key user.deleted (lo publica identity-service por outbox).
+      Consumidores: linkedin.user-deleted (linkedin-service) y computrabajo.user-deleted (computrabajo-service,
+      borra la sesión de candidato cifrada).
+    parameters:
+      consumer:
+        description: Prefijo de la cola del servicio que consume
+    messages:
+      UserDeletedEvent:
+        payload:
+          $ref: "../schemas/user-deleted-event.schema.json"
+
+  # ── Proveedores de IA (ADR 0005). Ningún mensaje lleva API keys. ──
+  aiProviderConfigChanged:
+    address: mcp-gateway.provider-config.{instanceId}
+    description: |
+      Exchange aplicafacil.events, routing keys ai.provider-config.{created,updated,disabled,deleted,credential-rotated}.
+      Cola exclusiva y temporal por instancia del mcp-gateway (todas las instancias deben enterarse);
+      lo perdido mientras estaba apagada lo recupera la reconciliación.
+    parameters:
+      instanceId:
+        description: Identificador de la instancia del mcp-gateway
+    messages:
+      ProviderConfigChangedEvent:
+        payload:
+          $ref: "../schemas/ai-provider-config-changed-event.schema.json"
+
+  aiCommands:
+    address: mcp-gateway.commands
+    description: |
+      Exchange aplicafacil.commands, routing keys ai.provider.test y ai.request.submit.
+      Durable, compartida entre instancias, con DLQ (aplicafacil.dlx → mcp-gateway.commands.dlq).
+    messages:
+      ProviderTestCommand:
+        payload:
+          $ref: "../schemas/ai-provider-test-command.schema.json"
+      AiRequestCommand:
+        payload:
+          $ref: "../schemas/ai-request-command.schema.json"
+
+  jobSearchRequests:
+    address: jobs-service.job-searches
+    description: |
+      Exchange aplicafacil.commands, routing key jobs.search.requested. Cola de trabajo del worker de búsquedas de
+      jobs-service (ADR 0006): durable, compartida entre instancias, prefetch 1, con DLQ
+      (aplicafacil.dlx → jobs-service.job-searches.dlq) para mensajes ilegibles. Un mensaje sin confirmar (la instancia
+      murió) se reentrega a otra.
+    messages:
+      JobSearchRequestedCommand:
+        payload:
+          $ref: "../schemas/job-search-requested-command.schema.json"
+
+  jobSearchRetries:
+    address: jobs-service.job-searches.wait.{n}
+    description: |
+      Esperas antes de reintentar: una cola por intento (routing key jobs.search.retry.{n}) con x-message-ttl =
+      30 s · 2^(n-1) (tope 10 min). Al vencer, el mensaje vuelve por dead-letter a aplicafacil.commands con
+      jobs.search.requested. Sin consumidores.
+    parameters:
+      n:
+        description: número del intento que se va a ejecutar después de la espera (2, 3…)
+    messages:
+      JobSearchRequestedCommand:
+        payload:
+          $ref: "../schemas/job-search-requested-command.schema.json"
+
+  aiProviderStatus:
+    address: ai-config.provider-status
+    description: Exchange aplicafacil.events, routing keys ai.provider.# (durable, con DLQ)
+    messages:
+      ProviderStatusEvent:
+        payload:
+          $ref: "../schemas/ai-provider-status-event.schema.json"
+
+  aiRequestResults:
+    address: ai-config.ai-results
+    description: Exchange aplicafacil.events, routing keys ai.request.completed | ai.request.failed (durable, con DLQ)
+    messages:
+      AiRequestResultEvent:
+        payload:
+          $ref: "../schemas/ai-request-result-event.schema.json"
+
+  profileAiResults:
+    address: profile.ai-results
+    description: |
+      Exchange aplicafacil.events, routing keys ai.request.completed | ai.request.failed (durable, con DLQ
+      aplicafacil.dlx → profile.ai-results.dlq). Cada servicio que pide IA tiene su propia cola y solo aplica los
+      requestId que creó; los demás los descarta (ai-config-service hace lo mismo con los de profile-service).
+    messages:
+      AiRequestResultEvent:
+        payload:
+          $ref: "../schemas/ai-request-result-event.schema.json"
+
 operations:
+  publishProviderConfigChanged:
+    action: send
+    summary: ai-config-service avisa un cambio de configuración (outbox, después del commit)
+    channel:
+      $ref: "#/channels/aiProviderConfigChanged"
+
+  receiveProviderConfigChanged:
+    action: receive
+    summary: el mcp-gateway inicializa, reemplaza o retira el adaptador (idempotente por versión)
+    channel:
+      $ref: "#/channels/aiProviderConfigChanged"
+
+  sendJobSearchRequest:
+    action: send
+    summary: jobs-service encola un intento de una búsqueda de vacantes (al pedirla y al reintentar)
+    channel:
+      $ref: "#/channels/jobSearchRequests"
+
+  receiveJobSearchRequest:
+    action: receive
+    summary: el worker de jobs-service ejecuta el intento (idempotente por searchId + attempt)
+    channel:
+      $ref: "#/channels/jobSearchRequests"
+
+  scheduleJobSearchRetry:
+    action: send
+    summary: jobs-service deja el siguiente intento esperando su backoff
+    channel:
+      $ref: "#/channels/jobSearchRetries"
+
+  sendAiCommands:
+    action: send
+    summary: |
+      ai-config-service pide probar una conexión o ejecutar una solicitud de IA; profile-service pide extraer el
+      perfil de un CV y elegir la búsqueda de empleo (ai.request.submit, ADR 0007)
+    channel:
+      $ref: "#/channels/aiCommands"
+
+  receiveAiCommands:
+    action: receive
+    summary: el mcp-gateway ejecuta el comando (idempotente por requestId / commandId)
+    channel:
+      $ref: "#/channels/aiCommands"
+
+  publishProviderStatus:
+    action: send
+    summary: el mcp-gateway informa el resultado de inicializar o probar un proveedor
+    channel:
+      $ref: "#/channels/aiProviderStatus"
+
+  receiveProviderStatus:
+    action: receive
+    summary: ai-config-service actualiza el estado (solo si configVersion es la vigente)
+    channel:
+      $ref: "#/channels/aiProviderStatus"
+
+  publishAiRequestResult:
+    action: send
+    summary: el mcp-gateway publica el resultado de una solicitud de IA
+    channel:
+      $ref: "#/channels/aiRequestResults"
+
+  receiveAiRequestResult:
+    action: receive
+    summary: ai-config-service cierra la solicitud correlacionando por requestId
+    channel:
+      $ref: "#/channels/aiRequestResults"
+
+  receiveProfileAiResult:
+    action: receive
+    summary: profile-service aplica al perfil la extracción del CV o la búsqueda sugerida (idempotente por requestId)
+    channel:
+      $ref: "#/channels/profileAiResults"
+
   sendApplyJob:
     action: send
     summary: automation-service ordena al scraper postularse a una vacante
@@ -61,3 +231,15 @@ operations:
     summary: people-service crea la Person del usuario (idempotente por userId)
     channel:
       $ref: "#/channels/userRegistered"
+
+  publishUserDeleted:
+    action: send
+    summary: identity-service avisa que se borró una cuenta (outbox, después del commit)
+    channel:
+      $ref: "#/channels/userDeleted"
+
+  receiveUserDeleted:
+    action: receive
+    summary: linkedin-service y computrabajo-service borran la sesión guardada de esa persona (idempotente)
+    channel:
+      $ref: "#/channels/userDeleted"

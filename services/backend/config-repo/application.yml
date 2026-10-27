@@ -16,10 +16,10 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # iss que trae el token (URL pública de auth-service)
-          issuer-uri: ${AUTH_ISSUER_URI:http://localhost:9000}
+          # iss que trae el token (identity-service, ADR 0003)
+          issuer-uri: ${AUTH_ISSUER_URI:http://127.0.0.1:9000}
           # de dónde bajar las llaves (en Docker es la URL interna)
-          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:9000/oauth2/jwks}
+          jwk-set-uri: ${AUTH_JWKS_URI:http://127.0.0.1:9000/.well-known/jwks.json}
           # solo se aceptan tokens emitidos PARA el backend
           audiences: aplicafacil-api
 

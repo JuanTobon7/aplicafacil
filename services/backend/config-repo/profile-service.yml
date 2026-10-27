@@ -17,9 +17,17 @@ spring:
   flyway:
     schemas: profile
     default-schema: profile
+  # user.deleted y los resultados de IA (ai.request.completed|failed)
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+
   servlet:
     multipart:
       max-file-size: 10MB
+      max-request-size: 11MB
 
   ai:
     openai:
@@ -37,3 +45,11 @@ spring:
         dimensions: 1536
         index-type: HNSW
         distance-type: COSINE_DISTANCE
+
+# Importar un CV y elegir la búsqueda pasan por el mcp-gateway (ai.request.submit por RabbitMQ, ADR 0007)
+aplicafacil:
+  profile:
+    ai:
+      timeout: ${PROFILE_AI_TIMEOUT:3m}
+      max-cv-chars: 24000
+      max-file-size: 10MB

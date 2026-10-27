@@ -3,24 +3,36 @@ server:
 
 # Cada servicio tiene un prefijo /api/<servicio>/ que el gateway quita:
 #   GET /api/profile/profiles/123  →  profile-service  GET /profiles/123
+# En local (perfil "local") no hay Eureka: ver api-gateway-local.yml.
 spring:
+  # El CV se sube por aquí (POST /api/profile/profiles/me/cv): el gateway no debe cortar antes que profile-service
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   cloud:
     gateway:
       server:
         webmvc:
           routes:
-            - id: auth-service
-              uri: lb://auth-service
+            - id: identity-service
+              uri: lb://identity-service
               predicates:
                 - Path=/api/auth/**
               filters:
-                - StripPrefix=2
-            - id: people-service
-              uri: lb://people-service
+                - StripPrefix=1
+            - id: linkedin-service
+              uri: lb://linkedin-service
               predicates:
-                - Path=/api/people/**
+                - Path=/api/linkedin/**
               filters:
-                - StripPrefix=2
+                - StripPrefix=1
+            - id: computrabajo-service
+              uri: lb://computrabajo-service
+              predicates:
+                - Path=/api/computrabajo/**
+              filters:
+                - StripPrefix=1
             - id: profile-service
               uri: lb://profile-service
               predicates:
@@ -39,7 +51,13 @@ spring:
                 - Path=/api/automation/**
               filters:
                 - StripPrefix=2
+            - id: ai-config-service
+              uri: lb://ai-config-service
+              predicates:
+                - Path=/api/ai/**
+              filters:
+                - StripPrefix=1
 
 aplicafacil:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://127.0.0.1:8080,http://localhost:5173}

@@ -1,0 +1,49 @@
+server:
+  port: 9000
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:aplicafacil}
+    username: ${IDENTITY_DB_USER:identity_svc}
+    password: ${IDENTITY_DB_PASSWORD:identity_svc}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: identity
+  flyway:
+    schemas: identity
+    default-schema: identity
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:aplicafacil}
+    password: ${RABBITMQ_PASSWORD:aplicafacil}
+
+aplicafacil:
+  # AES-256-GCM: tokens OAuth de LinkedIn y llave privada de firma. Obligatoria para arrancar.
+  session-encryption:
+    key: ${SESSION_ENCRYPTION_KEY:}
+    key-version: ${SESSION_ENCRYPTION_KEY_VERSION:1}
+  identity:
+    issuer: ${AUTH_ISSUER_URI:http://127.0.0.1:9000}
+    audience: aplicafacil-api
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    login-code-ttl: 60s
+    service-token-ttl: 5m
+    linkedin-service-url: ${LINKEDIN_SERVICE_URL:http://127.0.0.1:8085}
+    # Servicios que pueden pedir un token de servicio en /internal/token (HTTP Basic)
+    service-clients: [linkedin-service, computrabajo-service, profile-service, jobs-service, automation-service, ai-config-service, mcp-gateway]
+    service-client-secret: ${SERVICE_CLIENT_SECRET:}
+
+app:
+  linkedin:
+    oauth:
+      # Fase desplegada. Mientras sea false no se registra el cliente OAuth2 ni se muestra el botón.
+      enabled: ${LINKEDIN_OAUTH_ENABLED:false}
+      client-id: ${LINKEDIN_CLIENT_ID:}
+      client-secret: ${LINKEDIN_CLIENT_SECRET:}
+      front-callback-url: ${FRONT_CALLBACK_URL:http://127.0.0.1:8080/auth/callback}

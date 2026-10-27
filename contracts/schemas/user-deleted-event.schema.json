@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aplicafacil.local/schemas/user-deleted-event.schema.json",
+  "title": "user.deleted",
+  "description": "identity-service lo publica (outbox) en el exchange aplicafacil.events con routing key user.deleted. Cada servicio borra los datos del usuario de forma idempotente.",
+  "type": "object",
+  "required": ["eventId", "userId", "occurredAt"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

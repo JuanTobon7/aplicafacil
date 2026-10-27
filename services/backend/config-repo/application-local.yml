@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────────────
+# Fase LOCAL (ADR 0003): cada usuario corre los servicios en su equipo.
+# Sin config-server ni Eureka; todo escucha solo en 127.0.0.1.
+# dev-up.ps1 lo carga con CONFIG_IMPORT junto con application.yml y <servicio>.yml.
+# ─────────────────────────────────────────────────────────────────────
+server:
+  address: 127.0.0.1
+
+spring:
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    discovery:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+logging:
+  level:
+    com.aplicafacil: INFO

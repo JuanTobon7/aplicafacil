@@ -1,0 +1,8 @@
+# Solo lo mínimo para arrancar: el resto de la configuración vive en
+# services/backend/config-repo/linkedin-service.yml (en local se lee del disco, ver CONFIG_IMPORT en dev-up.ps1).
+# Este servicio corre SIEMPRE en el host: abre un navegador visible para el inicio de sesión.
+spring:
+  application:
+    name: linkedin-service
+  config:
+    import: "${CONFIG_IMPORT:configserver:${CONFIG_SERVER_URL:http://localhost:8888}}"

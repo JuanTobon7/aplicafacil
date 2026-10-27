@@ -1,0 +1,42 @@
+openapi: 3.1.0
+info:
+  title: linkedin-service — sesión de LinkedIn del usuario
+  version: 1.0.0
+  description: |
+    El front lo llama por el api-gateway (`/api/linkedin/**`, que quita `/api`). Todo se limita al usuario del token
+    (`sub`). ADR 0003. Por ahora solo se documenta la comprobación de la sesión; el resto de `/linkedin/**`
+    (conectar, estado, desconectar) se irá agregando aquí.
+servers:
+  - url: http://127.0.0.1:8085
+security:
+  - userToken: []
+paths:
+  /linkedin/session/check:
+    post:
+      summary: Comprueba que la sesión guardada siga viva (el front lo llama al abrir la app)
+      description: |
+        Si se validó hace menos de 10 minutos responde VALID sin abrir el navegador. Si no, la valida headless con el
+        scraper: si sigue viva renueva el storageState guardado; si venció marca la conexión EXPIRED. Con EXPIRED o
+        NOT_CONNECTED el front pide iniciar sesión de nuevo (POST /linkedin/connect) y la sesión nueva se guarda.
+        BUSY (otra automatización usa la sesión) y UNAVAILABLE (el scraper no responde) no piden nada.
+      responses:
+        "200":
+          description: Resultado de la comprobación
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionCheck" }
+components:
+  securitySchemes:
+    userToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SessionCheck:
+      type: object
+      required: [result]
+      additionalProperties: false
+      properties:
+        result:
+          type: string
+          enum: [VALID, EXPIRED, NOT_CONNECTED, BUSY, UNAVAILABLE]

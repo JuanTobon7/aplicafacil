@@ -23,3 +23,6 @@ __pycache__/
 # Logs
 logs/
 *.log
+
+# DOM capturado de los portales (npm run capture:dom): puede traer datos de la persona aunque esté saneado
+services/scraper/dom-snapshots/

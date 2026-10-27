@@ -15,6 +15,18 @@
     <description>Perfiles profesionales (skills, experiencia, educación, proyectos, CV) y embeddings (pgvector)</description>
 
     <dependencies>
+        <!-- Forma del perfil leído de LinkedIn (experiencia, educación, idiomas) -->
+        <dependency>
+            <groupId>com.aplicafacil</groupId>
+            <artifactId>linkedin-contract</artifactId>
+        </dependency>
+
+        <!-- user.deleted -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- Persistencia -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

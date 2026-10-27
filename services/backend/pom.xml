@@ -23,7 +23,7 @@
           ├── libs/platform-common  → librería compartida (seguridad + errores)
           ├── platform/*            → config-server, discovery-server, api-gateway
           └── service-parent        → dependencias comunes de los microservicios de negocio
-              └── auth, people, profile, jobs, automation
+              └── identity, linkedin, profile, jobs, automation
 
         platform-common no se declara aquí en <dependencies>: él mismo hereda de este pom
         (dependencia circular) y config-server / discovery-server no deben llevar seguridad ni webmvc.
@@ -31,6 +31,10 @@
     <modules>
         <!-- Librerías compartidas (solo infraestructura, nunca dominio) -->
         <module>libs/platform-common</module>
+        <module>libs/platform-crypto</module>
+        <module>libs/linkedin-contract</module>
+        <!-- Reglas de arquitectura (ArchUnit) que usan los tests de cada servicio -->
+        <module>libs/architecture-rules</module>
 
         <!-- Plataforma Spring Cloud -->
         <module>platform/config-server</module>
@@ -40,14 +44,22 @@
         <!-- Padre común de los microservicios de negocio -->
         <module>service-parent</module>
 
-        <!-- Identidad: Authorization Server OAuth 2.1 / OIDC -->
-        <module>auth-service</module>
+        <!-- Identidad: LinkedIn es el registro y el login; emite los JWT propios (ADR 0003) -->
+        <module>identity-service</module>
+
+        <!-- Sesión de LinkedIn (proxy): BD, cifrado y estado; el navegador lo maneja services/scraper (NestJS) -->
+        <module>linkedin-service</module>
+
+        <!-- Sesión de candidato de Computrabajo: BD cifrada y estado; el navegador también es del scraper (ADR 0008) -->
+        <module>computrabajo-service</module>
 
         <!-- Microservicios de negocio -->
-        <module>people-service</module>
         <module>profile-service</module>
         <module>jobs-service</module>
         <module>automation-service</module>
+
+        <!-- Configuración de proveedores de IA y API keys cifradas; consumida por el mcp-gateway (ADR 0005) -->
+        <module>ai-config-service</module>
     </modules>
 
     <properties>
@@ -59,6 +71,7 @@
         <lombok.version>1.18.42</lombok.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <archunit.version>1.4.1</archunit.version>
+        
     </properties>
 
     <!-- Solo versiones: los módulos declaran la dependencia sin <version> -->
@@ -84,6 +97,16 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.aplicafacil</groupId>
+                <artifactId>platform-crypto</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aplicafacil</groupId>
+                <artifactId>linkedin-contract</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
                 <version>${springdoc.version}</version>
@@ -97,6 +120,16 @@
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit</artifactId>
                 <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aplicafacil</groupId>
+                <artifactId>architecture-rules</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -113,6 +146,27 @@
     <build>
         <pluginManagement>
             <plugins>
+                <!--
+                    Tamaño, complejidad y acoplamiento (CONSTRAINTS.md). No falla el build: genera target/pmd.xml y
+                    tools/quality/ratchet.mjs compara contra quality-baseline.json (no empeorar lo que ya existe).
+                    Uso: ./mvnw pmd:pmd
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>3.28.0</version>
+                    <configuration>
+                        <rulesets>
+                            <ruleset>${maven.multiModuleProjectDirectory}/config/pmd-quality.xml</ruleset>
+                        </rulesets>
+                        <targetJdk>${java.version}</targetJdk>
+                        <format>xml</format>
+                        <linkXRef>false</linkXRef>
+                        <includeTests>false</includeTests>
+                        <printFailingErrors>true</printFailingErrors>
+                        <failOnViolation>false</failOnViolation>
+                    </configuration>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>

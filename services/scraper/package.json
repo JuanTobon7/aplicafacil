@@ -1,0 +1,30 @@
+{
+  "name": "aplicafacil-scraper",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Implementación del navegador (Playwright) detrás de linkedin-service. Sin base de datos: nunca guarda la sesión.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "dev": "tsc -p tsconfig.build.json && node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "capture:dom": "tsc -p tsconfig.build.json && node dist/capture-dom.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.1.1",
+    "@nestjs/core": "^12.1.1",
+    "@nestjs/platform-express": "^12.1.1",
+    "jose": "^6.2.12",
+    "playwright": "1.63.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.10.0",
+    "oxlint": "^1.88.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.2"
+  }
+}

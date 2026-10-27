@@ -1,0 +1,7 @@
+# Solo lo mínimo para arrancar: el resto de la configuración vive en
+# services/backend/config-repo/ai-config-service.yml (en local se lee del disco, ver CONFIG_IMPORT en dev-up.ps1).
+spring:
+  application:
+    name: ai-config-service
+  config:
+    import: "${CONFIG_IMPORT:configserver:${CONFIG_SERVER_URL:http://localhost:8888}}"
