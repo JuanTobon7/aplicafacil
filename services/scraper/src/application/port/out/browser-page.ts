@@ -19,6 +19,12 @@ export interface BrowserPage {
    * Es una descripción en datos (no código que recibe el DOM), así funciona con cualquier motor.
    */
   extractAll(selector: string, fields: Record<string, FieldSpec>): Promise<ExtractedRecord[]>;
+  /**
+   * Para grabaciones: desplaza hasta el elemento `index` de `selector`, lo resalta, hace clic en `open` dentro de él
+   * (si se indica) y lo deja a la vista `holdMs`. Si la página navega con el clic, vuelve al listado. Nunca lanza:
+   * una card que ya no está solo se salta.
+   */
+  spotlight(selector: string, index: number, options: SpotlightOptions): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -29,3 +35,6 @@ export interface BrowserPage {
 export type FieldSpec = { selector?: string; attribute?: string };
 
 export type ExtractedRecord = Record<string, string | null>;
+
+/** `close`: qué clic vuelve al listado si el detalle lo tapó (ventana angosta). */
+export type SpotlightOptions = { open?: string; close?: string; holdMs: number };

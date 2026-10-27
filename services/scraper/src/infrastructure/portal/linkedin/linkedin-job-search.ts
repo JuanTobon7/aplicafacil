@@ -27,6 +27,10 @@ export class LinkedInJobSearch implements JobSearchPortal {
       /** Todo el texto de la card: de ahí salen la fecha y "Solicitud sencilla". */
       text: {},
     },
+    /** El título: abre el detalle en el panel derecho del listado. */
+    openTarget: LinkedInJobSelectors.title,
+    /** Con la ventana angosta el detalle tapa el listado: su flecha "←" vuelve a él. */
+    closeTarget: LinkedInJobSelectors.backToResults,
   };
 
   searchUrl(criteria: JobSearchCriteria, pageIndex: number): string {

@@ -7,9 +7,9 @@ const POLL_MS = 3000;
 /**
  * Búsquedas recientes, la seleccionada y sus ofertas. Mientras haya búsquedas en cola o corriendo, consulta cada 3 s.
  */
-export function useJobSearches() {
+export function useJobSearches(initiallySelected: string | null = null) {
   const [searches, setSearches] = useState<JobSearch[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(initiallySelected);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {

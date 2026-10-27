@@ -26,3 +26,7 @@ logs/
 
 # DOM capturado de los portales (npm run capture:dom): puede traer datos de la persona aunque esté saneado
 services/scraper/dom-snapshots/
+# Videos de las busquedas (dev-up -Record): muestran datos de tu cuenta
+recordings/
+# Caché incremental de tsc
+*.tsbuildinfo

@@ -12,8 +12,15 @@ import com.aplicafacil.jobs.domain.SearchCriteria;
 /** Las búsquedas pedidas por el front. Encolarlas es otro puerto ({@link JobSearchCommands}). */
 public interface JobSearchRepository {
 
-    /** La deja QUEUED para que el worker la tome en {@code now}. */
-    JobSearchView enqueue(UUID userId, JobPlatform platform, SearchCriteria criteria, Instant now);
+    /**
+     * La deja QUEUED para que el worker la tome en {@code now}.
+     *
+     * @param planId el plan de la IA que la lanzó; {@code null} si la pidió la persona
+     */
+    JobSearchView enqueue(UUID userId, JobPlatform platform, SearchCriteria criteria, Instant now, UUID planId);
+
+    /** Ya hay búsquedas de ese plan: el evento llegó repetido. */
+    boolean planLaunched(UUID planId);
 
     Optional<JobSearchView> findByIdAndUserId(UUID searchId, UUID userId);
 

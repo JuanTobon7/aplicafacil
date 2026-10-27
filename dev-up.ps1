@@ -23,6 +23,7 @@
   .\dev-up.ps1 -Dev      # ademas corre Vite en http://127.0.0.1:5173 (recarga en caliente)
   .\dev-up.ps1 -Test     # corre todas las pruebas
   .\dev-up.ps1 -ShowBrowser # las busquedas de vacantes se ven en una ventana del navegador (no headless)
+  .\dev-up.ps1 -Record    # como -ShowBrowser, mas lento y grabando un video de cada busqueda en recordings/
   .\dev-up.ps1 -Detach   # deja los servicios en segundo plano (como antes); se detienen con -Down
   .\dev-up.ps1 -KeepInfra # Ctrl+C detiene los servicios pero deja corriendo Postgres, RabbitMQ y Redis
   .\dev-up.ps1 -Down     # detiene los servicios y los contenedores (sin borrar datos)
@@ -33,6 +34,7 @@ param(
     [switch]$Test,
     [switch]$Detach,
     [switch]$ShowBrowser,
+    [switch]$Record,
     [switch]$KeepInfra,
     [switch]$Down
 )
@@ -390,7 +392,11 @@ function Start-AppProcess($name, $file, $arguments, $workingDirectory) {
 }
 
 # Scraper (Playwright): necesita el escritorio para abrir el navegador visible
+if ($Record) { $ShowBrowser = $true }
 $env:SCRAPER_SHOW_BROWSER = if ($ShowBrowser) { 'true' } else { 'false' }
+# -Record: video de cada busqueda (nunca del inicio de sesion) y una pausa antes de cada accion para que se vea
+$env:SCRAPER_RECORD_DIR = if ($Record) { (Join-Path $root 'recordings') -replace '\\', '/' } else { '' }
+$env:SCRAPER_SLOW_MO_MS = if ($Record) { '400' } else { '0' }
 Start-AppProcess 'scraper' 'node' @('dist/main.js') $scraper
 
 foreach ($svc in $javaServices) {
@@ -448,6 +454,7 @@ try {
     Start-Process $appUrl
     Step 'Corriendo. Ctrl+C detiene todo (servicios y contenedores).'
     Write-Host '    Actividad del worker de busquedas y del scraper:' -ForegroundColor DarkGray
+    if ($Record) { Write-Host '    -Record: cada busqueda se graba en recordings/ (el video queda al terminar la busqueda).' -ForegroundColor DarkGray }
     if ($ShowBrowser) { Write-Host '    -ShowBrowser: cada busqueda abre una ventana del navegador para que veas lo que hace.' -ForegroundColor DarkGray }
 
     $pattern = 'Worker de b|Tomada la b|squeda .* (en|fall)|ofertas|abandonadas|ERROR|\[JobSearch\]'

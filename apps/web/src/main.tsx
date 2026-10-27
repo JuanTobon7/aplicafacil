@@ -7,9 +7,13 @@ import { Layout } from "./components/Layout";
 import { WelcomePage } from "./pages/WelcomePage";
 import { ConnectPage } from "./pages/ConnectPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
-import { ProfilePage } from "./pages/ProfilePage";
+import { AccountsPage } from "./pages/AccountsPage";
 import { AiProvidersPage } from "./pages/AiProvidersPage";
+import { CvPage } from "./pages/CvPage";
 import { JobSearchPage } from "./pages/JobSearchPage";
+import { ManualSearchPage } from "./pages/ManualSearchPage";
+import { SearchPreferencesPage } from "./pages/SearchPreferencesPage";
+import { WorkProfilePage } from "./pages/WorkProfilePage";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -21,9 +25,13 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<WelcomePage />} />
             <Route path="conectar" element={<ConnectPage />} />
             <Route path="auth/callback" element={<AuthCallbackPage />} />
-            <Route path="perfil" element={<RequireAuth><ProfilePage /></RequireAuth>} />
-            <Route path="ia" element={<RequireAuth><AiProvidersPage /></RequireAuth>} />
             <Route path="vacantes" element={<RequireAuth><JobSearchPage /></RequireAuth>} />
+            <Route path="vacantes/manual" element={<RequireAuth><ManualSearchPage /></RequireAuth>} />
+            <Route path="perfil" element={<RequireAuth><WorkProfilePage /></RequireAuth>} />
+            <Route path="perfil/cv" element={<RequireAuth><CvPage /></RequireAuth>} />
+            <Route path="perfil/busqueda" element={<RequireAuth><SearchPreferencesPage /></RequireAuth>} />
+            <Route path="cuentas" element={<RequireAuth><AccountsPage /></RequireAuth>} />
+            <Route path="ia" element={<RequireAuth><AiProvidersPage /></RequireAuth>} />
             <Route path="*" element={<p>Página no encontrada.</p>} />
           </Route>
         </Routes>

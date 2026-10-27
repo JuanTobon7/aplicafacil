@@ -21,4 +21,6 @@ public interface SpringDataJobSearchRepository extends JpaRepository<JobSearchEn
 
     /** user.deleted: los resultados se borran en cascada; las ofertas (públicas) se conservan. */
     void deleteByUserId(UUID userId);
+
+    boolean existsByPlanId(UUID planId);
 }

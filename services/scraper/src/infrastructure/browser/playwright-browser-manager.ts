@@ -13,7 +13,16 @@ export type BrowserManagerDeps = {
   installer: BrowserInstaller;
   launcher: BrowserLauncher;
   logger: AppLogger;
+  /** Pausa (ms) antes de cada acción en las sesiones que se graban (SCRAPER_SLOW_MO_MS). */
+  recordingSlowMoMs?: number;
+  /** Ventana al grabar (SCRAPER_RECORD_VIEWPORT, p. ej. 360x780 para un reel vertical). */
+  recordingViewport?: { width: number; height: number };
+  /** Densidad de píxeles al grabar (SCRAPER_RECORD_SCALE): el video sale de viewport × escala, nítido. */
+  recordingScale?: number;
 };
+
+/** Tamaño por omisión de la ventana y del video al grabar (con viewport libre el video sale con otro tamaño). */
+const RECORDING_SIZE = { width: 1280, height: 800 };
 
 /**
  * Gestor ÚNICO (Singleton) del navegador en el proceso.
@@ -81,14 +90,25 @@ export class PlaywrightBrowserManager implements BrowserManager {
     }
   }
 
-  async openSession({ visible, storageState }: OpenSessionOptions): Promise<BrowserSession> {
+  async openSession({ visible, storageState, recordVideoDir }: OpenSessionOptions): Promise<BrowserSession> {
     this.assertReady();
     const options: BrowserContextOptions = {
       ...(visible && { viewport: null }),
+      ...(recordVideoDir && this.recordingOptions(recordVideoDir)),
       // El storageState llega opaco por HTTP; Playwright valida su forma
       ...(storageState && { storageState: storageState as BrowserContextOptions["storageState"] }),
     };
-    return visible ? this.openVisible(options) : this.openHeadless(options);
+    if (!visible) return this.openHeadless(options);
+    if (!recordVideoDir) return this.openVisible(options);
+    const scale = this.deps.recordingScale ?? 1;
+    return this.openVisible(options, { slowMo: this.deps.recordingSlowMoMs, ...(scale !== 1 && { scale }) });
+  }
+
+  private recordingOptions(dir: string): BrowserContextOptions {
+    const viewport = this.deps.recordingViewport ?? RECORDING_SIZE;
+    const scale = this.deps.recordingScale ?? 1;
+    const size = { width: viewport.width * scale, height: viewport.height * scale };
+    return { viewport, ...(scale !== 1 && { deviceScaleFactor: scale }), recordVideo: { dir, size } };
   }
 
   async shutdown(): Promise<void> {
@@ -98,8 +118,11 @@ export class PlaywrightBrowserManager implements BrowserManager {
     await browser?.close().catch(() => undefined);
   }
 
-  private async openVisible(options: BrowserContextOptions): Promise<BrowserSession> {
-    const browser = await this.deps.launcher.launch({ headless: false });
+  private async openVisible(
+    options: BrowserContextOptions,
+    { slowMo, scale }: { slowMo?: number; scale?: number } = {},
+  ): Promise<BrowserSession> {
+    const browser = await this.deps.launcher.launch({ headless: false, ...(slowMo && { slowMo }), ...(scale && { scale }) });
     try {
       const context = await browser.newContext(options);
       return this.track(context, browser, () => browser.close());

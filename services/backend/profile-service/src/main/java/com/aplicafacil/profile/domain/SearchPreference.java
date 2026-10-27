@@ -1,7 +1,11 @@
 package com.aplicafacil.profile.domain;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Cómo buscar empleo con este perfil. La IA elige las palabras clave ({@link #suggested}); la persona decide si solo
@@ -30,6 +34,20 @@ public record SearchPreference(String keywords, List<String> alternatives, Strin
     public SearchPreference suggested(SearchSuggestion suggestion, Instant now) {
         return new SearchPreference(suggestion.keywords(), suggestion.alternatives(), suggestion.rationale(),
                 remoteOnly, postedWithinDays, location, now);
+    }
+
+    /**
+     * Las búsquedas a lanzar: la principal y después las alternativas, sin repetir (sin distinguir mayúsculas).
+     *
+     * @param max cuántas como mucho
+     */
+    public List<String> plannedQueries(int max) {
+        Map<String, String> unique = new LinkedHashMap<>();
+        Stream.concat(Stream.ofNullable(keywords), alternatives.stream())
+                .map(q -> Text.clean(q, 200))
+                .filter(q -> q != null && q.length() >= 2)
+                .forEach(q -> unique.putIfAbsent(q.toLowerCase(Locale.ROOT), q));
+        return unique.values().stream().limit(max).toList();
     }
 
     /** La persona ajusta la búsqueda; la sugerencia (alternativas, motivo) se conserva. */

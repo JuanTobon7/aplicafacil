@@ -99,6 +99,10 @@ de nuevo. Detalle: [ADR 0008](docs/adr/0008-sesion-de-computrabajo.md).
 
 ## Búsqueda de vacantes
 
+En **Vacantes → Buscar con IA**, la IA lee tu perfil, elige las búsquedas y las lanza sola en LinkedIn y Computrabajo
+(`profile.search-plan.ready` por RabbitMQ, [ADR 0007](docs/adr/0007-perfil-desde-cv-con-ia-y-busqueda-sugerida.md)).
+También se puede buscar a mano:
+
 `POST /api/jobs/searches` (`{"platform": "LINKEDIN" | "COMPUTRABAJO", "keywords", "location", "maxResults",
 "postedWithinDays"}`) guarda la búsqueda, la encola en RabbitMQ (`jobs.search.requested`, por outbox) y responde 202. El worker de `jobs-service` la toma, abre el navegador
 headless del scraper (LinkedIn con tu sesión, a través de `linkedin-service`; Computrabajo sin sesión), recorre las

@@ -70,6 +70,12 @@ class AiTaskController {
                 searches.requestSuggestion(userId(jwt), request.configId())));
     }
 
+    @PostMapping("/search-plan")
+    ResponseEntity<AiTaskResponse> planSearches(@AuthenticationPrincipal Jwt jwt,
+                                                @Valid @RequestBody SuggestionRequest request) {
+        return ResponseEntity.accepted().body(AiTaskResponse.of(searches.requestPlan(userId(jwt), request.configId())));
+    }
+
     @GetMapping("/ai-tasks")
     List<AiTaskResponse> recent(@AuthenticationPrincipal Jwt jwt) {
         return tasks.recent(userId(jwt)).stream().map(AiTaskResponse::of).toList();

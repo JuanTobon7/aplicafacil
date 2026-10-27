@@ -54,6 +54,10 @@ public class JobSearchEntity {
     @Column(nullable = false)
     private boolean remote;
 
+    /** La tarea de IA que la lanzó (profile.search-plan.ready); null si la pidió la persona. */
+    @Column(name = "plan_id")
+    private UUID planId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private JobSearchStatus status;

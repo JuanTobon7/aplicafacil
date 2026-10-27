@@ -83,7 +83,7 @@ export type Profile = {
 
 export type AiTask = {
   id: string;
-  kind: "CV_EXTRACTION" | "SEARCH_SUGGESTION";
+  kind: "CV_EXTRACTION" | "SEARCH_SUGGESTION" | "SEARCH_PLAN";
   status: "PENDING" | "COMPLETED" | "FAILED" | "TIMED_OUT";
   fileName: string | null;
   errorCode: string | null;
@@ -108,6 +108,9 @@ export const profileApi = {
     return api<AiTask>("POST", "/profile/profiles/me/cv", form);
   },
   suggestSearch: (configId: string) => api<AiTask>("POST", "/profile/profiles/me/search-suggestion", { configId }),
+  /** La IA elige las búsquedas del perfil y se lanzan solas en LinkedIn y Computrabajo. */
+  planSearches: (configId: string) => api<AiTask>("POST", "/profile/profiles/me/search-plan", { configId }),
+  task: (id: string) => api<AiTask>("GET", `/profile/profiles/me/ai-tasks/${id}`),
   configureSearch: (settings: SearchSettings) =>
     api<SearchPreference>("PUT", "/profile/profiles/me/search-preference", settings),
   tasks: () => api<AiTask[]>("GET", "/profile/profiles/me/ai-tasks"),

@@ -2,8 +2,14 @@ import { chromium, type Browser } from "playwright";
 
 /** Lanza procesos del navegador. Separado del gestor para poder probarlo sin Chromium. */
 export interface BrowserLauncher {
-  launch(options: { headless: boolean }): Promise<Browser>;
+  /**
+   * @param slowMo pausa (ms) antes de cada acción: para que una grabación se pueda seguir
+   * @param scale densidad real de la ventana: el video se captura en píxeles físicos (la emulada no lo agranda)
+   */
+  launch(options: LaunchOptions): Promise<Browser>;
 }
+
+export type LaunchOptions = { headless: boolean; slowMo?: number; scale?: number };
 
 /** Reduce la señal "navegador automatizado" que algunos sitios usan para bloquear. */
 const ARGS = ["--disable-blink-features=AutomationControlled"];
@@ -21,7 +27,8 @@ export function desktopUserAgent(chromiumVersion: string, platform: NodeJS.Platf
 }
 
 export class ChromiumLauncher implements BrowserLauncher {
-  launch({ headless }: { headless: boolean }): Promise<Browser> {
-    return chromium.launch({ headless, args: ARGS });
+  launch({ headless, slowMo, scale }: LaunchOptions): Promise<Browser> {
+    const args = scale ? [...ARGS, `--force-device-scale-factor=${scale}`] : ARGS;
+    return chromium.launch({ headless, slowMo, args });
   }
 }

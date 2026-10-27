@@ -30,6 +30,7 @@ import com.aplicafacil.profile.domain.AiTaskKind;
 import com.aplicafacil.profile.domain.AiTaskStatus;
 import com.aplicafacil.profile.infrastructure.ai.JacksonAiOutputReader;
 import com.aplicafacil.profile.infrastructure.messaging.OutboxAiRequests;
+import com.aplicafacil.profile.infrastructure.messaging.OutboxSearchPlans;
 import com.aplicafacil.profile.infrastructure.persistence.JpaAiTaskRepository;
 import com.aplicafacil.profile.infrastructure.persistence.JpaUserProfileRepository;
 import com.aplicafacil.profile.infrastructure.persistence.entity.OutboxEventEntity;
@@ -46,8 +47,9 @@ import tools.jackson.databind.json.JsonMapper;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({CvImportService.class, SearchPreferenceService.class, AiResultService.class, AiTaskSubmitter.class,
-        CvExtractionCompletion.class, SearchSuggestionCompletion.class, JpaUserProfileRepository.class,
-        JpaAiTaskRepository.class, OutboxAiRequests.class, JacksonAiOutputReader.class, CvImportFlowTest.Config.class})
+        CvExtractionCompletion.class, SearchSuggestionCompletion.class, SearchPlanCompletion.class,
+        JpaUserProfileRepository.class, JpaAiTaskRepository.class, OutboxAiRequests.class, OutboxSearchPlans.class,
+        JacksonAiOutputReader.class, CvImportFlowTest.Config.class})
 @Testcontainers
 class CvImportFlowTest {
 
@@ -72,6 +74,9 @@ class CvImportFlowTest {
 
     @Autowired
     AiResultService results;
+
+    @Autowired
+    SearchPreferenceService searches;
 
     @Autowired
     TestEntityManager em;
@@ -112,6 +117,27 @@ class CvImportFlowTest {
 
         // Un resultado repetido no hace nada
         assertThat(results.apply(completed(extraction.id(), EXTRACTED))).isFalse();
+    }
+
+    @Test
+    void aSearchPlanLeavesTheSuggestionInTheProfileAndAsksJobsServiceToLaunchIt() {
+        AiTask extraction = cvs.importCv(userId, configId, cv("cv.pdf"));
+        results.apply(completed(extraction.id(), EXTRACTED));
+        UUID suggestionId = UUID.fromString(lastCommand().path("requestId").asString());
+        results.apply(completed(suggestionId, "{\"keywords\": \"desarrollador java\", \"alternatives\": []}"));
+
+        AiTask plan = searches.requestPlan(userId, configId);
+        assertThat(plan.kind()).isEqualTo(AiTaskKind.SEARCH_PLAN);
+        assertThat(results.apply(completed(plan.id(), """
+                {"keywords": "desarrollador backend java", "alternatives": ["Desarrollador Backend Java",
+                 "ingeniero de software java", "spring boot"], "rationale": "Backend con Spring."}"""))).isTrue();
+
+        assertThat(reload().getSearch().getKeywords()).isEqualTo("desarrollador backend java");
+        JsonNode ready = lastEvent("profile.search-plan.ready");
+        assertThat(ready.path("planId").asString()).isEqualTo(plan.id().toString());
+        assertThat(ready.path("userId").asString()).isEqualTo(userId.toString());
+        assertThat(ready.path("searches").valueStream().map(JsonNode::asString).toList())
+                .containsExactly("desarrollador backend java", "ingeniero de software java");
     }
 
     @Test
@@ -160,12 +186,16 @@ class CvImportFlowTest {
     }
 
     private JsonNode lastCommand() {
+        return lastEvent("ai.request.submit");
+    }
+
+    private JsonNode lastEvent(String eventType) {
         em.flush();
         List<OutboxEventEntity> events = em.getEntityManager()
                 .createQuery("select e from OutboxEventEntity e order by e.createdAt desc, e.id", OutboxEventEntity.class)
                 .getResultList();
         OutboxEventEntity last = events.stream()
-                .filter(e -> e.getEventType().equals("ai.request.submit"))
+                .filter(e -> e.getEventType().equals(eventType))
                 .reduce((a, b) -> a.getCreatedAt().isAfter(b.getCreatedAt()) ? a : b).orElseThrow();
         return json.readTree(last.getPayload());
     }

@@ -76,13 +76,11 @@ export function JobSearchForm({ onQueued, prefill }: Props) {
 
   return (
     <form className="card" onSubmit={(e) => void submit(e)} noValidate aria-busy={sending}>
-      <h1>Buscar vacantes</h1>
-      <p className="muted small">
-        La búsqueda corre en segundo plano: se abre un navegador sin ventana, se recorren las ofertas del listado y se
-        guardan. Puede tardar un par de minutos.
-      </p>
       <JobSearchFields values={values} setValues={setValues} fieldErrors={fieldErrors} />
       {formError && <p className="error" role="alert">{formError}</p>}
+      <p className="muted small">
+        Corre en segundo plano: se abre un navegador sin ventana, se recorren las ofertas del listado y se guardan.
+      </p>
       <div className="actions">
         <button type="submit" disabled={sending}>{sending ? "Encolando…" : "Buscar"}</button>
       </div>

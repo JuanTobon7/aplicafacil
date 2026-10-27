@@ -122,6 +122,40 @@ describe("JobSearchFacade", () => {
     ]);
   });
 
+  it("con recordDir graba la búsqueda en esa carpeta", async () => {
+    const factory = new FakeSessionFactory(
+      () => new FakeBrowserSession({ lists: { [url(0)]: { [CARD]: records("1") } } }),
+    );
+    const facade = new JobSearchFacade({
+      searchPortals: new InMemoryJobSearchPortalRegistry([stubPortal(false)]),
+      portals: new InMemoryPortalRegistry([sessionPortal(true)]),
+      sessions: factory,
+      clock: new FakeClock(),
+      logger: silentLogger,
+      limits: { maxPages: 1, pauseBetweenPagesMs: [0, 0], listTimeoutMs: 100, showBrowser: true, recordDir: "rec" },
+    });
+
+    await facade.search("stub", { keywords: "java", maxResults: 10 });
+
+    expect(factory.opened[0].options).toEqual({ visible: true, storageState: undefined, recordVideoDir: "rec" });
+  });
+
+  it("al grabar recorre cada card a la vista; sin grabar no se detiene en ninguna", async () => {
+    const session = new FakeBrowserSession({ lists: { [url(0)]: { [CARD]: records("1", "2") } } });
+    const facade = new JobSearchFacade({
+      searchPortals: new InMemoryJobSearchPortalRegistry([stubPortal(false)]),
+      portals: new InMemoryPortalRegistry([sessionPortal(true)]),
+      sessions: new FakeSessionFactory(() => session),
+      clock: new FakeClock(),
+      logger: silentLogger,
+      limits: { maxPages: 1, pauseBetweenPagesMs: [0, 0], listTimeoutMs: 100, showcaseCardMs: 900 },
+    });
+
+    await facade.search("stub", { keywords: "java", maxResults: 10 });
+
+    expect(session.pages[0].spotlighted.map((s) => [s.index, s.options.holdMs])).toEqual([[0, 900], [1, 900]]);
+  });
+
   it("se detiene al llegar a maxResults", async () => {
     const { facade, session } = setup({ pages: [records("1", "2", "3"), records("4", "5", "6")] });
     const result = await facade.search("stub", { keywords: "java", maxResults: 4 });

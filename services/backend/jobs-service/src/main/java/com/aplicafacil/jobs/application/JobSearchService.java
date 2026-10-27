@@ -48,7 +48,7 @@ public class JobSearchService {
             throw new JobSearchRejectedException(Reason.TOO_MANY_PENDING,
                     "Ya tienes " + pending + " búsquedas en curso; espera a que terminen.");
         }
-        JobSearchView created = searches.enqueue(userId, platform, criteria, clock.instant());
+        JobSearchView created = searches.enqueue(userId, platform, criteria, clock.instant(), null);
         // Misma transacción: el comando queda en el outbox y se publica en RabbitMQ al confirmarse
         commands.requestFirstRun(created.id(), userId);
         return created;

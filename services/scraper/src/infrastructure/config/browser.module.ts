@@ -6,6 +6,7 @@ import { ChromiumLauncher } from "../browser/chromium-launcher";
 import { PlaywrightBrowserManager } from "../browser/playwright-browser-manager";
 import { PlaywrightChromiumInstaller } from "../browser/playwright-chromium-installer";
 import { BrowserLifecycle } from "./browser-lifecycle";
+import { scraperProperties } from "./scraper-properties";
 
 /**
  * Único lugar que conoce la implementación del navegador. El resto pide los puertos: cambiar Playwright por
@@ -20,6 +21,9 @@ import { BrowserLifecycle } from "./browser-lifecycle";
           installer: new PlaywrightChromiumInstaller(),
           launcher: new ChromiumLauncher(),
           logger: new Logger("BrowserManager"),
+          recordingSlowMoMs: scraperProperties.recordingSlowMoMs,
+          recordingViewport: scraperProperties.recordingViewport,
+          recordingScale: scraperProperties.recordingScale,
         }),
     },
     { provide: BROWSER_SESSION_FACTORY, useExisting: BROWSER_MANAGER },

@@ -1,27 +1,27 @@
-import { useLocation } from "react-router";
-import type { SearchSettings } from "../api/profile";
-import { JobSearchForm } from "../components/jobs/JobSearchForm";
+import { Link, useLocation } from "react-router";
+import { AiSearchCard } from "../components/jobs/AiSearchCard";
 import { JobSearchList } from "../components/jobs/JobSearchList";
 import { PostingList } from "../components/jobs/PostingList";
+import { PageHeader } from "../components/PageHeader";
 import { useJobSearches } from "../hooks/useJobSearches";
 
 /**
- * Búsqueda de vacantes: se pide aquí, el worker de jobs-service la procesa (abre el navegador, recorre las cards y
- * guarda las ofertas) y esta página consulta el estado mientras hay búsquedas en curso.
+ * Vacantes: la IA elige y lanza las búsquedas desde el perfil ("Buscar con IA"); debajo, el estado de cada búsqueda y
+ * las ofertas de la que se elija. El worker de jobs-service las procesa en segundo plano.
  */
 export function JobSearchPage() {
-  const { searches, selected, setSelected, selectedSearch, postings, loadError, reload } = useJobSearches();
-  // "Buscar vacantes" desde el perfil trae la búsqueda que eligió la IA
-  const prefill = (useLocation().state as { prefill?: SearchSettings } | null)?.prefill;
-
-  const onQueued = async (searchId: string) => {
-    setSelected(searchId);
-    await reload();
-  };
+  // Al volver de la búsqueda manual llega la que se acaba de pedir, ya seleccionada
+  const justQueued = (useLocation().state as { selected?: string } | null)?.selected ?? null;
+  const { searches, selected, setSelected, selectedSearch, postings, loadError, reload } = useJobSearches(justQueued);
 
   return (
     <>
-      <JobSearchForm onQueued={onQueued} prefill={prefill} />
+      <PageHeader
+        title="Vacantes"
+        subtitle="Búsquedas en LinkedIn y Computrabajo hechas por un navegador en segundo plano."
+        actions={<Link className="button secondary" to="/vacantes/manual">Búsqueda manual</Link>}
+      />
+      <AiSearchCard onLaunched={reload} />
       <JobSearchList
         searches={searches}
         loadError={loadError}

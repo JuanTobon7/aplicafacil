@@ -5,15 +5,13 @@ import { ApiError } from "../api/http";
 import { linkedinApi, type StatusView } from "../api/linkedin";
 import type { User } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
+import { PageHeader } from "../components/PageHeader";
 import { ComputrabajoCard } from "../components/profile/ComputrabajoCard";
-import { ProfileWork } from "../components/profile/ProfileWork";
 
 /**
- * Datos básicos y estado de la conexión con LinkedIn (SSE con polling de respaldo), con desconectar y eliminar cuenta;
- * la conexión con Computrabajo; debajo, el
- * perfil laboral (importar CV, búsqueda sugerida por la IA y secciones).
+ * Conexiones: LinkedIn (SSE con polling de respaldo) y Computrabajo, y la zona para eliminar la cuenta.
  */
-export function ProfilePage() {
+export function AccountsPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const user = auth.user!;
@@ -43,17 +41,22 @@ export function ProfilePage() {
 
   return (
     <>
+      <PageHeader title="Conexiones" subtitle="Las cuentas con las que AplicaFácil busca y postula por ti." />
       <section className="card">
+        <h2>LinkedIn</h2>
         <UserHeader user={user} />
         <ConnectionState status={status} />
-        {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           <ConnectionAction status={status} onDisconnect={() => void disconnect()} />
-          <button className="danger" onClick={() => void deleteAccount()}>Eliminar mi cuenta y mis datos</button>
         </div>
       </section>
       <ComputrabajoCard />
-      <ProfileWork />
+      <section className="card danger-zone">
+        <h2>Eliminar cuenta</h2>
+        <p className="muted">Borra tu usuario, perfil, sesiones guardadas y postulaciones. No se puede deshacer.</p>
+        {error && <p className="error" role="alert">{error}</p>}
+        <button className="danger" onClick={() => void deleteAccount()}>Eliminar mi cuenta y mis datos</button>
+      </section>
     </>
   );
 }
@@ -61,8 +64,7 @@ export function ProfilePage() {
 function UserHeader({ user }: { user: User }) {
   return (
     <>
-      <h1>{displayName(user)}</h1>
-      {user.headline && <p>{user.headline}</p>}
+      <p><strong>{displayName(user)}</strong>{user.headline && <span className="muted"> · {user.headline}</span>}</p>
       {user.publicProfileUrl && (
         <p><a href={user.publicProfileUrl} target="_blank" rel="noreferrer">Ver perfil en LinkedIn</a></p>
       )}
@@ -73,7 +75,6 @@ function UserHeader({ user }: { user: User }) {
 function ConnectionState({ status }: { status: StatusView | null }) {
   return (
     <>
-      <h2 className="small muted">Conexión con LinkedIn</h2>
       <p>
         Estado: <strong>{status?.status ?? "…"}</strong>
         {status?.lastSyncAt && <span className="muted small"> · última sincronización {new Date(status.lastSyncAt).toLocaleString()}</span>}

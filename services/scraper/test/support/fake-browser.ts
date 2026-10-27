@@ -3,6 +3,7 @@ import type {
   ExtractedRecord,
   FieldSpec,
   NavigationOptions,
+  SpotlightOptions,
 } from "../../src/application/port/out/browser-page";
 import type {
   BrowserSession,
@@ -68,6 +69,12 @@ export class FakeBrowserPage implements BrowserPage {
   async extractAll(selector: string, _fields: Record<string, FieldSpec>) {
     this.visited.push(this.current);
     return this.site.lists?.[this.current]?.[selector] ?? [];
+  }
+
+  readonly spotlighted: { selector: string; index: number; options: SpotlightOptions }[] = [];
+
+  async spotlight(selector: string, index: number, options: SpotlightOptions) {
+    this.spotlighted.push({ selector, index, options });
   }
 
   async close() {

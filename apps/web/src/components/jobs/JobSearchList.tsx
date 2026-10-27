@@ -15,7 +15,7 @@ export function JobSearchList({ searches, loadError, selected, onToggle }: Props
       <h2>Mis búsquedas</h2>
       {loadError && <p className="error" role="alert">{loadError}</p>}
       {searches === null && !loadError && <p className="muted">Cargando…</p>}
-      {searches?.length === 0 && <p className="muted">Todavía no hiciste ninguna búsqueda.</p>}
+      {searches?.length === 0 && <p className="muted">Todavía no hay búsquedas. Prueba «Buscar con IA».</p>}
       <ul className="providers" aria-live="polite">
         {searches?.map((s) => (
           <JobSearchItem key={s.id} search={s} selected={s.id === selected} onToggle={() => onToggle(s.id)} />
@@ -33,7 +33,10 @@ function JobSearchItem({ search: s, selected, onToggle }: { search: JobSearch; s
           <strong>{s.keywords}</strong>
           {s.location && <> · {s.location}</>}
         </button>
-        <span className={`badge status-${badgeClass(s.status)}`}>{STATUS_LABEL[s.status]}</span>
+        <span>
+          {s.planId && <span className="badge ai" title="La eligió la IA desde tu perfil">IA</span>}{" "}
+          <span className={`badge status-${badgeClass(s.status)}`}>{STATUS_LABEL[s.status]}</span>
+        </span>
       </div>
       <p className="muted small">
         {platformLabel(s.platform)} · {new Date(s.requestedAt).toLocaleString()}

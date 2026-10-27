@@ -10,5 +10,5 @@ import com.aplicafacil.jobs.domain.JobSearchStatus;
 public record JobSearchView(UUID id, JobPlatform platform, String keywords, String location, int maxResults,
                             Integer postedWithinDays, boolean remote, JobSearchStatus status, int attempts, Integer foundCount,
                             Integer newCount, String errorCode, String errorMessage, Instant requestedAt,
-                            Instant startedAt, Instant finishedAt, Instant nextAttemptAt) {
+                            Instant startedAt, Instant finishedAt, Instant nextAttemptAt, UUID planId) {
 }

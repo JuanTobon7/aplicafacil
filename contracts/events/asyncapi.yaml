@@ -37,6 +37,16 @@ channels:
         payload:
           $ref: "../schemas/user-registered-event.schema.json"
 
+  searchPlanReady:
+    address: jobs-service.search-plans
+    description: |
+      Exchange aplicafacil.events, routing key profile.search-plan.ready (profile-service, outbox). jobs-service encola
+      cada búsqueda del plan en LinkedIn y Computrabajo; un planId ya lanzado se ignora. Con DLQ.
+    messages:
+      SearchPlanReadyEvent:
+        payload:
+          $ref: "../schemas/search-plan-ready-event.schema.json"
+
   # Una cola durable por consumidor: cada servicio borra sus datos de la persona (idempotente).
   userDeleted:
     address: "{consumer}.user-deleted"
@@ -243,3 +253,15 @@ operations:
     summary: linkedin-service y computrabajo-service borran la sesión guardada de esa persona (idempotente)
     channel:
       $ref: "#/channels/userDeleted"
+
+  publishSearchPlanReady:
+    action: send
+    summary: profile-service avisa que la IA eligió las búsquedas del perfil (outbox, después del commit)
+    channel:
+      $ref: "#/channels/searchPlanReady"
+
+  receiveSearchPlanReady:
+    action: receive
+    summary: jobs-service encola las búsquedas del plan (idempotente por planId)
+    channel:
+      $ref: "#/channels/searchPlanReady"

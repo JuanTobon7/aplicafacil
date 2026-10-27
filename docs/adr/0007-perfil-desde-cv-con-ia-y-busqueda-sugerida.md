@@ -66,6 +66,16 @@ todo precargado; jobs-service recibe `remote` y `postedWithinDays` como cualquie
 | Remoto | `f_WT=2` | `/trabajo-de-{q}-en-remoto` (sin lugar: una oferta remota no tiene ciudad) |
 | Publicada hace ≤ N días | `f_TPR=r{N·86400}` | `?pubdate=1\|3\|7\|15\|30`: el menor que cubra N |
 
+### 3.1 "Buscar con IA": la IA también lanza las búsquedas (2026-10-27)
+
+`POST /profiles/me/search-plan` crea una tarea `SEARCH_PLAN` con el mismo prompt que la sugerencia. Cuando la IA
+responde, la sugerencia queda en el perfil y, en la misma transacción, `profile.search-plan.ready` va al outbox
+(contracts/schemas/search-plan-ready-event.schema.json). jobs-service lo consume (`jobs-service.search-plans`, con DLQ)
+y encola la búsqueda principal y una alternativa en cada portal (LinkedIn primero), con 25 ofertas cada una y el
+remoto/fecha/lugar del perfil. Son 4 búsquedas: caben en el tope de 5 en curso por persona; si no hay cupo se lanzan las
+que quepan. `job_search.plan_id` (= id de la tarea) hace idempotente un evento repetido y marca las búsquedas "IA" en
+el front.
+
 ### 4. Rendimiento (búsquedas anidadas)
 
 - `JdbcJobPostingStore.saveAll` hacía dos consultas por oferta (hasta 400 por búsqueda). Ahora son dos por búsqueda:

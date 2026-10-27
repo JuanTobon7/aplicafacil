@@ -4,6 +4,7 @@ import type {
   ExtractedRecord,
   FieldSpec,
   NavigationOptions,
+  SpotlightOptions,
 } from "../../application/port/out/browser-page";
 
 /** Lo poco del DOM que usan las funciones que se ejecutan dentro de la página. */
@@ -14,6 +15,7 @@ type DomElement = {
   scrollTop: number;
   clientHeight: number;
   scrollBy(x: number, y: number): void;
+  style: { outline: string; outlineOffset: string };
 };
 type DomDocument = { querySelector(selector: string): DomElement | null; scrollingElement: DomElement | null };
 
@@ -78,6 +80,31 @@ export class PlaywrightBrowserPage implements BrowserPage {
         Object.fromEntries(Object.entries(spec).map(([name, field]) => [name, read(element, field)])),
       );
     }, fields);
+  }
+
+  async spotlight(selector: string, index: number, { open, close, holdMs }: SpotlightOptions) {
+    const listUrl = this.page.url();
+    const card = this.page.locator(selector).nth(index);
+    try {
+      await card.scrollIntoViewIfNeeded({ timeout: 3_000 });
+      await card.evaluate((el: unknown) => {
+        const style = (el as DomElement).style;
+        style.outline = "3px solid #0a66c2";
+        style.outlineOffset = "-3px";
+      });
+      if (open) await card.locator(open).first().click({ timeout: 3_000 });
+      await this.page.waitForTimeout(holdMs);
+      await card.evaluate((el: unknown) => ((el as DomElement).style.outline = "")).catch(() => undefined);
+    } catch {
+      // La card ya no está o no se pudo abrir: la grabación sigue con la siguiente
+    }
+    // Ventana angosta: el detalle tapó la lista y su botón vuelve a ella (el historial puede no tenerla)
+    if (close && !(await card.isVisible().catch(() => false))) {
+      await this.page.locator(close).first().click({ timeout: 3_000 }).catch(() => undefined);
+    }
+    if (new URL(this.page.url()).pathname !== new URL(listUrl).pathname) {
+      await this.page.goBack({ waitUntil: "domcontentloaded" }).catch(() => undefined);
+    }
   }
 
   close() {

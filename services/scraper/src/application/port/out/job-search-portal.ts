@@ -35,6 +35,10 @@ export interface JobSearchPortal {
     /** Una card. */
     item: string;
     fields: Record<string, FieldSpec>;
+    /** Qué clic abre el detalle de una card sin salir del listado (solo se usa al grabar). */
+    openTarget?: string;
+    /** Qué clic vuelve al listado cuando el detalle lo tapa (ventana angosta; solo se usa al grabar). */
+    closeTarget?: string;
   };
 
   /** Convierte lo leído de una card en una oferta normalizada, o null si no sirve. */

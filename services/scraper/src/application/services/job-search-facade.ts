@@ -20,6 +20,10 @@ export type JobSearchLimits = {
   listTimeoutMs: number;
   /** true: la búsqueda se hace en una ventana visible para ver lo que hace el navegador (SCRAPER_SHOW_BROWSER). */
   showBrowser?: boolean;
+  /** Carpeta donde se graba un video de cada búsqueda (SCRAPER_RECORD_DIR); sin ella no se graba. */
+  recordDir?: string;
+  /** Al grabar: cuánto se muestra cada card (resaltada y abierta) para que se vea el recorrido. */
+  showcaseCardMs?: number;
 };
 
 export const DEFAULT_LIMITS: JobSearchLimits = { maxPages: 10, pauseBetweenPagesMs: [1500, 3500], listTimeoutMs: 20_000 };
@@ -72,12 +76,7 @@ export class JobSearchFacade implements JobSearchService {
     if (portal.requiresSession && !storageState) {
       throw new ScraperError("SESSION_REQUIRED", `${portal.displayName} exige una sesión iniciada para buscar.`);
     }
-    const visible = this.limits.showBrowser === true;
-    this.logger.log(
-      `[${portal.id}] Abriendo navegador ${visible ? "visible" : "sin ventana"} para "${criteria.keywords}"` +
-        `${criteria.location ? ` en ${criteria.location}` : ""} (máx. ${criteria.maxResults} ofertas)`,
-    );
-    const session = await this.sessions.openSession({ visible, storageState: portal.requiresSession ? storageState : undefined });
+    const session = await this.open(portal, criteria, storageState);
     try {
       if (portal.requiresSession) {
         this.logger.log(`[${portal.id}] Verificando que la sesión siga iniciada`);
@@ -97,6 +96,22 @@ export class JobSearchFacade implements JobSearchService {
     } finally {
       await session.close().catch(() => undefined);
     }
+  }
+
+  /** Abre el contexto (visible y grabado según los límites) con la sesión si el portal la exige. */
+  private open(portal: JobSearchPortal, criteria: JobSearchCriteria, storageState?: StorageState) {
+    const visible = this.limits.showBrowser === true;
+    this.logger.log(
+      `[${portal.id}] Abriendo navegador ${visible ? "visible" : "sin ventana"} para "${criteria.keywords}"` +
+        `${criteria.location ? ` en ${criteria.location}` : ""} (máx. ${criteria.maxResults} ofertas)`,
+    );
+    const recordVideoDir = this.limits.recordDir;
+    if (recordVideoDir) this.logger.log(`[${portal.id}] Grabando la búsqueda en ${recordVideoDir}`);
+    return this.sessions.openSession({
+      visible,
+      storageState: portal.requiresSession ? storageState : undefined,
+      ...(recordVideoDir && { recordVideoDir }),
+    });
   }
 
   /** Recorre página por página las cards del listado (iteración paginada). */
@@ -149,7 +164,22 @@ export class JobSearchFacade implements JobSearchService {
     this.logger.log(`[${portal.id}] Página ${index + 1}: listado cargado; desplazando para cargar todas las cards`);
     await page.scrollToEnd(portal.cards.scrollContainer);
     const records = await page.extractAll(portal.cards.item, portal.cards.fields);
+    await this.showcase(portal, page, records);
     return records.map((r) => this.toCard(portal, r)).filter((c): c is JobCard => c !== null);
+  }
+
+  /** Solo al grabar: recorre las cards una a una a la vista (la lectura ya se hizo; esto es para el video). */
+  private async showcase(portal: JobSearchPortal, page: BrowserPage, records: ExtractedRecord[]) {
+    const holdMs = this.limits.showcaseCardMs;
+    if (!holdMs) return;
+    for (const [index, record] of records.entries()) {
+      this.logger.log(`[${portal.id}] Card ${index + 1}/${records.length}: ${record.title ?? "(sin título)"}`);
+      await page.spotlight(portal.cards.item, index, {
+        open: portal.cards.openTarget,
+        close: portal.cards.closeTarget,
+        holdMs,
+      });
+    }
   }
 
   /** Una card que no cumple las reglas de dominio se descarta (con aviso); el resto de la página sigue. */

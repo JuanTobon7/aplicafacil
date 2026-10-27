@@ -16,6 +16,7 @@ import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -137,6 +138,32 @@ class JobSearchQueueIntegrationTest {
     }
 
     @Test
+    void anAiSearchPlanQueuesEachSearchOnceEvenIfTheEventArrivesTwice() {
+        when(gateways.get(any())).thenReturn(portal(attempt -> List.of(card("5"))));
+        UUID planId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String event = """
+                {"schemaVersion":1,"eventId":"%s","planId":"%s","userId":"%s",
+                 "searches":["desarrollador java","backend java"],"remoteOnly":true,"postedWithinDays":7,
+                 "location":null,"occurredAt":"%s"}""".formatted(UUID.randomUUID(), planId, userId, Instant.now());
+
+        rabbitTemplate.send("aplicafacil.events", SearchPlanListener.READY, json(event));
+        rabbitTemplate.send("aplicafacil.events", SearchPlanListener.READY, json(event));
+
+        await(() -> searches.findAll().stream().filter(s -> planId.equals(s.getPlanId()))
+                .filter(s -> s.getStatus() == JobSearchStatus.COMPLETED).count() == 2);
+        await(() -> admin.getQueueInfo(SearchPlanListener.QUEUE).getMessageCount() == 0);
+        List<JobSearchEntity> launched = searches.findAll().stream().filter(s -> planId.equals(s.getPlanId())).toList();
+        assertThat(launched).extracting(JobSearchEntity::getKeywords)
+                .containsExactlyInAnyOrder("desarrollador java", "backend java");
+        assertThat(launched).allSatisfy(s -> {
+            assertThat(s.isRemote()).isTrue();
+            assertThat(s.getPostedWithinDays()).isEqualTo(7);
+            assertThat(s.getUserId()).isEqualTo(userId);
+        });
+    }
+
+    @Test
     void anUnreadableMessageGoesToTheDeadLetterQueue() {
         publish("{\"searchId\":\"no-es-un-uuid\"}");
 
@@ -159,10 +186,13 @@ class JobSearchQueueIntegrationTest {
         };
     }
 
-    private void publish(String json) {
-        rabbitTemplate.send(JobSearchMessaging.COMMANDS_EXCHANGE, JobSearchMessaging.REQUESTED,
-                MessageBuilder.withBody(json.getBytes(StandardCharsets.UTF_8))
-                        .setContentType(MessageProperties.CONTENT_TYPE_JSON).build());
+    private void publish(String body) {
+        rabbitTemplate.send(JobSearchMessaging.COMMANDS_EXCHANGE, JobSearchMessaging.REQUESTED, json(body));
+    }
+
+    private static Message json(String body) {
+        return MessageBuilder.withBody(body.getBytes(StandardCharsets.UTF_8))
+                .setContentType(MessageProperties.CONTENT_TYPE_JSON).build();
     }
 
     private JobSearchEntity awaitStatus(UUID id, JobSearchStatus status) {

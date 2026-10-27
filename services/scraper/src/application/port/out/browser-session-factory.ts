@@ -5,6 +5,11 @@ export type OpenSessionOptions = {
   /** true: ventana visible para que la persona inicie sesión; false: headless. */
   visible: boolean;
   storageState?: StorageState;
+  /**
+   * Graba un video del contexto en esa carpeta (lo guarda al cerrar la sesión). Solo para búsquedas: el inicio de
+   * sesión nunca se graba, así la contraseña no queda en un video.
+   */
+  recordVideoDir?: string;
 };
 
 export interface BrowserSessionFactory {

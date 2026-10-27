@@ -38,6 +38,18 @@ public class SearchPreferenceService {
     /** Pide a la IA la búsqueda clave para el perfil actual. */
     @Transactional
     public AiTask requestSuggestion(UUID userId, UUID configId) {
+        return submitSuggestion(readyForAi(userId), configId);
+    }
+
+    /** Pide a la IA las búsquedas para el perfil y, cuando responda, se lanzan solas en los portales. */
+    @Transactional
+    public AiTask requestPlan(UUID userId, UUID configId) {
+        UserProfile profile = readyForAi(userId);
+        return submitter.submit(new AiTaskSubmitter.Request(userId, configId, AiTaskKind.SEARCH_PLAN, null,
+                ProfilePrompts.searchSuggestion(profile.content(), profile.workProfile())));
+    }
+
+    private UserProfile readyForAi(UUID userId) {
         UserProfile profile = existing(userId);
         if (profile.content().isEmpty()) {
             throw new ProfileRejectedException(Reason.INVALID_REQUEST,
@@ -47,7 +59,7 @@ public class SearchPreferenceService {
             throw new ProfileRejectedException(Reason.AI_TASK_IN_PROGRESS,
                     "Ya hay un CV o una búsqueda en proceso; espera a que termine.");
         }
-        return submitSuggestion(profile, configId);
+        return profile;
     }
 
     /** Después de importar un CV: misma transacción y mismo proveedor que la extracción. */

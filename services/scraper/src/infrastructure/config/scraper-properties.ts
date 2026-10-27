@@ -21,4 +21,17 @@ export const scraperProperties = {
   maxSearchPages: Number(process.env.SCRAPER_MAX_SEARCH_PAGES ?? 10),
   /** true: las búsquedas se ven en una ventana del navegador (dev-up -ShowBrowser). */
   showSearchBrowser: process.env.SCRAPER_SHOW_BROWSER === "true",
+  /** Carpeta donde se graba un video de cada búsqueda (dev-up -Record); vacía: no se graba. */
+  recordDir: process.env.SCRAPER_RECORD_DIR || undefined,
+  /** Pausa (ms) antes de cada acción mientras se graba, para que el video se pueda seguir. */
+  recordingSlowMoMs: Number(process.env.SCRAPER_SLOW_MO_MS ?? 0),
+  /** Ventana al grabar, "ANCHOxALTO" (360x780: vertical para reels); vacía: 1280x800. */
+  recordingViewport: parseSize(process.env.SCRAPER_RECORD_VIEWPORT),
+  /** Densidad de píxeles al grabar (3 con 360x780 da un video 1080x2340). */
+  recordingScale: Number(process.env.SCRAPER_RECORD_SCALE ?? 1),
 };
+
+function parseSize(value: string | undefined) {
+  const match = /^(\d+)x(\d+)$/.exec(value ?? "");
+  return match ? { width: Number(match[1]), height: Number(match[2]) } : undefined;
+}

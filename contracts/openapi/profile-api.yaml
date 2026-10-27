@@ -56,6 +56,26 @@ paths:
         "202": { description: Tarea creada, content: { application/json: { schema: { $ref: "#/components/schemas/AiTask" } } } }
         "404": { description: Todavía no tiene perfil }
         "409": { description: "Ya hay una tarea de IA en curso (code: AI_TASK_IN_PROGRESS)" }
+  /profiles/me/search-plan:
+    post:
+      summary: La IA elige las búsquedas para el perfil y se lanzan solas en LinkedIn y Computrabajo
+      description: |
+        Igual que search-suggestion (la sugerencia queda en el perfil), y al terminar la tarea publica
+        profile.search-plan.ready: jobs-service encola la búsqueda principal y una alternativa en cada portal
+        (contracts/schemas/search-plan-ready-event.schema.json). Las búsquedas creadas traen planId = id de la tarea.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [configId]
+              properties:
+                configId: { type: string, format: uuid }
+      responses:
+        "202": { description: Tarea creada (kind SEARCH_PLAN), content: { application/json: { schema: { $ref: "#/components/schemas/AiTask" } } } }
+        "404": { description: Todavía no tiene perfil }
+        "409": { description: "Ya hay una tarea de IA en curso (code: AI_TASK_IN_PROGRESS)" }
   /profiles/me/search-preference:
     put:
       summary: Ajusta la búsqueda (palabras clave, solo remoto, antigüedad máxima de la oferta, lugar)
@@ -218,7 +238,7 @@ components:
       required: [id, kind, status, createdAt, deadline]
       properties:
         id: { type: string, format: uuid, description: Es el requestId de ai.request.submit }
-        kind: { enum: [CV_EXTRACTION, SEARCH_SUGGESTION] }
+        kind: { enum: [CV_EXTRACTION, SEARCH_SUGGESTION, SEARCH_PLAN] }
         status: { enum: [PENDING, COMPLETED, FAILED, TIMED_OUT] }
         fileName: { type: [string, "null"] }
         errorCode: { type: [string, "null"] }

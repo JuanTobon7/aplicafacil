@@ -7,6 +7,7 @@ import { profileApi, type AiTask } from "../../api/profile";
 const TASK_LABEL: Record<AiTask["kind"], string> = {
   CV_EXTRACTION: "Leyendo tu CV",
   SEARCH_SUGGESTION: "Eligiendo tu búsqueda de empleo",
+  SEARCH_PLAN: "Eligiendo y lanzando tus búsquedas",
 };
 
 type Props = {

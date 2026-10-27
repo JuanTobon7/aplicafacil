@@ -16,7 +16,7 @@ type Props = {
 
 /**
  * La búsqueda de empleo del perfil: la IA elige las palabras clave; la persona decide si solo remoto, qué tan reciente
- * y dónde. "Buscar vacantes" abre /vacantes con todo esto ya puesto.
+ * y dónde. "Buscar vacantes" abre la búsqueda manual con todo esto ya puesto.
  */
 export function SearchPreferenceCard({ preference: p, configId, pending, onChanged }: Props) {
   const navigate = useNavigate();
@@ -42,12 +42,12 @@ export function SearchPreferenceCard({ preference: p, configId, pending, onChang
   };
   const search = () => void run(async () => {
     await profileApi.configureSearch(settings);
-    navigate("/vacantes", { state: { prefill: settings } });
+    navigate("/vacantes/manual", { state: { prefill: settings } });
   });
 
   return (
     <form className="card" onSubmit={save} aria-busy={pending}>
-      <h2>Mi búsqueda de empleo</h2>
+      <h2>Búsqueda principal</h2>
       {p.rationale && <p className="muted small">{p.rationale}</p>}
       <div className="grid">
         <Field label="Palabras clave (elegidas por la IA, puedes cambiarlas)">

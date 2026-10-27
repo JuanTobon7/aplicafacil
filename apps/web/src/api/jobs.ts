@@ -24,6 +24,8 @@ export type JobSearch = {
   finishedAt: string | null;
   /** Solo en QUEUED: cuándo la vuelve a intentar el worker. */
   nextAttemptAt: string | null;
+  /** La lanzó la IA desde el perfil ("Buscar con IA"); null si la pidió la persona. */
+  planId: string | null;
 };
 
 export type JobPosting = {

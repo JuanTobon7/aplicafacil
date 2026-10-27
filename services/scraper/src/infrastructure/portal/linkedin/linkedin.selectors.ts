@@ -53,6 +53,8 @@ export const LinkedInJobSelectors = {
   postedPattern:
     /(?:Publicado|Posted|Volvió a publicarse|Reposted)\s+((?:hace\s+)?\d+\s+(?:minutos?|horas?|días?|semanas?|meses|mes|años?|minutes?|hours?|days?|weeks?|months?|years?)(?:\s+ago)?)/,
   easyApplyLabels: ["easy apply", "solicitud sencilla"],
+  /** Flecha del detalle con la ventana angosta (dom-snapshots/linkedin). */
+  backToResults: 'button[aria-label="Volver a la lista de resultados"], button[aria-label="Back to search results"]',
 } as const;
 
 export const memberUrn =(id: string) => `urn:li:fsd_profile:${id}`;

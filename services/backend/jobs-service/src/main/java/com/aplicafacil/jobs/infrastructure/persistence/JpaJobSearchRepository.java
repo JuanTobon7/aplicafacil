@@ -31,7 +31,8 @@ public class JpaJobSearchRepository implements JobSearchRepository {
     }
 
     @Override
-    public JobSearchView enqueue(UUID userId, JobPlatform platform, SearchCriteria criteria, Instant now) {
+    public JobSearchView enqueue(UUID userId, JobPlatform platform, SearchCriteria criteria, Instant now,
+                                 UUID planId) {
         JobSearchEntity entity = JobSearchEntity.builder()
                 .id(UUID.randomUUID())
                 .userId(userId)
@@ -45,8 +46,14 @@ public class JpaJobSearchRepository implements JobSearchRepository {
                 .attempts(0)
                 .nextAttemptAt(now)
                 .requestedAt(now)
+                .planId(planId)
                 .build();
         return toView(searches.save(entity));
+    }
+
+    @Override
+    public boolean planLaunched(UUID planId) {
+        return searches.existsByPlanId(planId);
     }
 
     @Override
@@ -76,6 +83,6 @@ public class JpaJobSearchRepository implements JobSearchRepository {
         return new JobSearchView(e.getId(), e.getPlatform(), e.getKeywords(), e.getLocation(), e.getMaxResults(),
                 e.getPostedWithinDays(), e.isRemote(), e.getStatus(), e.getAttempts(), e.getFoundCount(), e.getNewCount(),
                 e.getErrorCode(), e.getErrorMessage(), e.getRequestedAt(), e.getStartedAt(), e.getFinishedAt(),
-                e.getStatus() == JobSearchStatus.QUEUED ? e.getNextAttemptAt() : null);
+                e.getStatus() == JobSearchStatus.QUEUED ? e.getNextAttemptAt() : null, e.getPlanId());
     }
 }

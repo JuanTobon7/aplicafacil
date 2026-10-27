@@ -33,16 +33,16 @@ function fakeBrowser() {
   return browser;
 }
 
-function setup(install: () => Promise<void> = async () => undefined) {
-  const launched: { headless: boolean; browser: ReturnType<typeof fakeBrowser> }[] = [];
+function setup(install: () => Promise<void> = async () => undefined, recording: Partial<BrowserManagerDeps> = {}) {
+  const launched: { headless: boolean; slowMo?: number; browser: ReturnType<typeof fakeBrowser> }[] = [];
   const launcher: BrowserLauncher = {
-    launch: async ({ headless }) => {
+    launch: async ({ headless, slowMo }) => {
       const browser = fakeBrowser();
-      launched.push({ headless, browser });
+      launched.push({ headless, slowMo, browser });
       return browser as unknown as Browser;
     },
   };
-  const deps: BrowserManagerDeps = { installer: { install }, launcher, logger: silentLogger };
+  const deps: BrowserManagerDeps = { installer: { install }, launcher, logger: silentLogger, recordingSlowMoMs: 250, ...recording };
   return { manager: PlaywrightBrowserManager.getInstance(deps), launched };
 }
 
@@ -112,6 +112,29 @@ describe("PlaywrightBrowserManager (Singleton)", () => {
     await session.close();
     await session.close();
     expect(launched[0].browser.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("al grabar fija el tamaño de la ventana y del video, y va más lento", async () => {
+    const { manager, launched } = setup();
+    await manager.initialize();
+    await manager.openSession({ visible: true, recordVideoDir: "rec" });
+    const size = { width: 1280, height: 800 };
+    expect(launched[0]).toMatchObject({ headless: false, slowMo: 250 });
+    expect(launched[0].browser.contexts[0].options).toEqual({ viewport: size, recordVideo: { dir: "rec", size } });
+
+    await manager.openSession({ visible: true });
+    expect(launched[1].slowMo).toBeUndefined();
+  });
+
+  it("al grabar en vertical usa la ventana configurada y el video sale de ventana × densidad", async () => {
+    const { manager, launched } = setup(undefined, { recordingViewport: { width: 360, height: 780 }, recordingScale: 3 });
+    await manager.initialize();
+    await manager.openSession({ visible: true, recordVideoDir: "rec" });
+    expect(launched[0].browser.contexts[0].options).toEqual({
+      viewport: { width: 360, height: 780 },
+      deviceScaleFactor: 3,
+      recordVideo: { dir: "rec", size: { width: 1080, height: 2340 } },
+    });
   });
 
   it("al apagar cierra las sesiones abiertas y el Chromium compartido", async () => {
